@@ -39,7 +39,6 @@ from isaacgym import gymapi, gymtorch, gymutil
 from torch import Tensor
 
 from isaacgymenvs.tasks.point2point.two_hand_arms.hand_arm_utils import DofParameters, populate_dof_properties
-from isaacgymenvs.tasks.point2point.two_hand_arms.two_hand_arms_base import TwoHandArmsBase
 from isaacgymenvs.tasks.base.vec_task import VecTask
 from isaacgymenvs.tasks.point2point.generate_cuboids import (
     generate_big_cuboids,
@@ -47,42 +46,30 @@ from isaacgymenvs.tasks.point2point.generate_cuboids import (
     generate_small_cuboids,
     generate_sticks,
 )
-from isaacgymenvs.utils.torch_jit_utils import *
+from utils.torch_jit_utils import *
 
 
-class TwoHandArmsPoint2Point(TwoHandArmsBase,VecTask):
-    def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render):
-        self.cfg = cfg
+class TwoHandArmsPoint2Point(VecTask):
+    def __init__(self, cfg, sim_params, physics_engine, device_type, device_id, headless):
 
         # for camera
         self.frame_num = 0
         self.using_camera = False
 
-        TwoHandArmsBase.__init__(self, cfg=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id,
-            headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
+        self.num_arm_dofs = 6
+        self.num_finger_dofs = 4
+        self.num_hand_fingertips = 4
+        self.num_hand_dofs = self.num_finger_dofs * self.num_hand_fingertips
+        self.num_hand_arm_dofs = self.num_hand_dofs + self.num_arm_dofs
+        self.hand_arm_asset_file: str = self.cfg["env"]["asset"]["kukaAllegro"]
+        self.num_arms = self.cfg["env"]["numArms"]
+        assert self.num_arms == 2, f"Only two arms supported, got {self.num_arms}"
 
-
-        self.frame_since_restart: int = 0  # number of control steps since last restart across all actors
-
-        # self.hand_arm_asset_file: str = self.cfg["env"]["asset"]["kukaAllegro"]
-
+        self.cfg = cfg
+        self.sim_params = sim_params
+        self.frame_since_restart: int = 0
         self.clamp_abs_observations: float = self.cfg["env"]["clampAbsObservations"]
-
-        # self.num_arms = self.cfg["env"]["numArms"]
-        # assert self.num_arms == 2, f"Only two arms supported, got {self.num_arms}"
-
-        # self.arm_x_ofs = self.cfg["env"]["armXOfs"]
-        # self.arm_y_ofs = self.cfg["env"]["armYOfs"]
-
-        # 4 joints for index, middle, ring, and thumb and 7 for kuka arm
-        # self.num_arm_dofs = 7
-        # self.num_finger_dofs = 4
-        # self.num_hand_fingertips = 4
-        # self.num_hand_dofs = self.num_finger_dofs * self.num_hand_fingertips
-        # self.num_hand_arm_dofs = self.num_hand_dofs + self.num_arm_dofs
-
         self.num_hand_arm_actions = self.num_hand_arm_dofs * self.num_arms
-
         self.randomize = self.cfg["task"]["randomize"]
         self.randomization_params = self.cfg["task"]["randomization_params"]
 
@@ -91,144 +78,83 @@ class TwoHandArmsPoint2Point(TwoHandArmsBase,VecTask):
         self.lifting_bonus = self.cfg["env"]["liftingBonus"]
         self.lifting_bonus_threshold = self.cfg["env"]["liftingBonusThreshold"]
         self.keypoint_rew_scale = self.cfg["env"]["keypointRewScale"]
+        self.catch_arm_close_goal_rew_scale = self.cfg["env"]["catchArmCloseGoalRewScale"]
+        self.reach_goal_bonus = self.cfg["env"]["reachGoalBonus"]
+        self.outside_punish = self.cfg["env"]["outsidePunish"]
 
-        # not used in 2-arm task for now
-        # to fix: add to config
-        # self.kuka_actions_penalty_scale = self.cfg["env"]["kukaActionsPenaltyScale"]
-        # self.allegro_actions_penalty_scale = self.cfg["env"]["allegroActionsPenaltyScale"]
-
-        # self.dof_params: DofParameters = DofParameters.from_cfg(self.cfg)
+        self.force_torque_obs_scale = 10.0
+        self.reset_position_noise_x = self.cfg["env"]["resetPositionNoiseX"]
+        self.reset_position_noise_y = self.cfg["env"]["resetPositionNoiseY"]
+        self.reset_position_noise_z = self.cfg["env"]["resetPositionNoiseZ"]
+        self.reset_rotation_noise = self.cfg["env"]["resetRotationNoise"]
+        self.reset_dof_vel_noise = self.cfg["env"]["resetDofVelRandomInterval"]
 
         self.initial_tolerance = self.cfg["env"]["successTolerance"]
         self.success_tolerance = self.initial_tolerance
-        self.target_tolerance = self.cfg["env"]["targetSuccessTolerance"]
-        self.tolerance_curriculum_increment = self.cfg["env"]["toleranceCurriculumIncrement"]
-        self.tolerance_curriculum_interval = self.cfg["env"]["toleranceCurriculumInterval"]
-
-        self.reach_goal_bonus = self.cfg["env"]["reachGoalBonus"]
-        self.fall_dist = self.cfg["env"]["fallDistance"]
-        self.fall_penalty = self.cfg["env"]["fallPenalty"]
-
-        # self.reset_position_noise_x = self.cfg["env"]["resetPositionNoiseX"]
-        # self.reset_position_noise_y = self.cfg["env"]["resetPositionNoiseY"]
-        # self.reset_position_noise_z = self.cfg["env"]["resetPositionNoiseZ"]
-        # self.reset_rotation_noise = self.cfg["env"]["resetRotationNoise"]
-        # self.reset_dof_pos_noise_fingers = self.cfg["env"]["resetDofPosRandomIntervalFingers"]
-        # self.reset_dof_pos_noise_arm = self.cfg["env"]["resetDofPosRandomIntervalArm"]
-        # self.reset_dof_vel_noise = self.cfg["env"]["resetDofVelRandomInterval"]
-
-        # self.force_scale = self.cfg["env"].get("forceScale", 0.0)
-        # self.force_prob_range = self.cfg["env"].get("forceProbRange", [0.001, 0.1])
-        # self.force_decay = self.cfg["env"].get("forceDecay", 0.99)
-        # self.force_decay_interval = self.cfg["env"].get("forceDecayInterval", 0.08)
-
-        # currently not used in 2-hand env
-        # self.hand_dof_speed_scale = self.cfg["env"]["dofSpeedScale"]
-
-        # self.use_relative_control = self.cfg["env"]["useRelativeControl"]
-        # self.act_moving_average = self.cfg["env"]["actionsMovingAverage"]
-
-        # self.debug_viz = self.cfg["env"]["enableDebugVis"]
+        self.use_relative_control = self.cfg["env"]["useRelativeControl"]
+        self.act_moving_average = self.cfg["env"]["actionsMovingAverage"]
+        self.debug_viz = self.cfg["env"]["enableDebugVis"]
 
         self.max_episode_length = self.cfg["env"]["episodeLength"]
         self.reset_time = self.cfg["env"].get("resetTime", -1.0)
+        self.print_success_stat = self.cfg["env"]["printNumSuccesses"]
         self.max_consecutive_successes = self.cfg["env"]["maxConsecutiveSuccesses"]
         self.success_steps: int = self.cfg["env"]["successSteps"]
+
         self.lifting_bonus_threshold = 0.55  # 0.55
         self.success_steps: int = 50  # oringin 15, set 40 in order to improve catch quality
         self.catch_arm_extra_ofs: float = 0.20
         self.catch_arm_board: float = -0.70 # -0.90
         self.max_consecutive_successes = 1 # 50
-        self.z_up = 0.0
-
-        # 1.0 means keypoints correspond to the corners of the object
-        # larger values help the agent to prioritize rotation matching
-        self.keypoint_scale = self.cfg["env"]["keypointScale"]
-
-        # size of the object (i.e. cube) before scaling
-        self.object_base_size = self.cfg["env"]["objectBaseSize"]
-
-        # whether to sample random object dimensions
-        self.randomize_object_dimensions = self.cfg["env"]["randomizeObjectDimensions"]
-        self.with_small_cuboids = self.cfg["env"]["withSmallCuboids"]
-        self.with_big_cuboids = self.cfg["env"]["withBigCuboids"]
-        self.with_sticks = self.cfg["env"]["withSticks"]
 
         if self.reset_time > 0.0:
             self.max_episode_length = int(round(self.reset_time / (self.control_freq_inv * self.sim_params.dt)))
             print("Reset time: ", self.reset_time)
             print("New episode length: ", self.max_episode_length)
+        self.num_envs = self.cfg["env"]["numEnvs"]
 
-        # self.object_type = self.cfg["env"]["objectType"]
-        # assert self.object_type in ["block"]
-        self.asset_files_dict["table"] = "urdf/table_narrow.urdf"
-        # self.asset_files_dict = {
-        #     "block": "urdf/objects/cube_multicolor.urdf",  # 0.05m box
-        #     "table": "urdf/table_wide.urdf",
-        #     "bucket": "urdf/objects/bucket.urdf",
-        #     "lightbulb": "lightbulb/A60_E27_SI.urdf",
-        #     "socket": "E27SocketSimple.urdf",
-        #     "ball": "urdf/objects/ball.urdf",
-        # }
-        self.object_asset_scales_dict = {
-            "banana": 1.0,
-            "mug": 1.0,
-            "apple": 1.0,
-            "stapler": 1.0,
-            "suger": 1.0,
-            "bowl": 1.0,
-            "pie": 1.0,
-            "peach": 1.0,
-            "pear": 1.0,
-            "pen": 1.0,
-            "washer": 1.0,
-            "poker": 1.0,
-            "scissors": 1.0
+        self.asset_files_dict = {
+            "block": "urdf/objects/cube_multicolor.urdf",
+            "table": "urdf/table_narrow.urdf",
+            "ball": "urdf/objects/ball.urdf",
+            "washer": "urdf/ycb_pybullet/blue_moon/model.urdf",
+            "mug": "urdf/ycb_pybullet/mug/model.urdf",
+            "banana": "urdf/ycb_pybullet/plastic_banana/model.urdf",
+            "poker": "urdf/ycb_pybullet/poker_1/model.urdf",
+            "stapler": "urdf/ycb_pybullet/stapler_1/model.urdf",
+            "suger": "urdf/ycb_pybullet/suger_3/model.urdf",
+            "bowl": "urdf/ycb_pybullet/bowl/model.urdf",
+            "pie": "urdf/ycb_pybullet/orion_pie/model.urdf",
+            "apple": "urdf/ycb_pybullet/plastic_apple/model.urdf",
+            "peach": "urdf/ycb_pybullet/plastic_peach/model.urdf",
+            "pear": "urdf/ycb_pybullet/plastic_pear/model.urdf",
+            "strawberry": "urdf/ycb_pybullet/plastic_strawberry/model.urdf",
+            "pen": "urdf/ycb_pybullet/blue_marker/model.urdf",
+            "scissors": "urdf/ycb_pybullet/scissors/model.urdf",
         }
-
-        self.keypoints_offsets = self._object_keypoint_offsets()
-
-        self.num_keypoints = len(self.keypoints_offsets)
-
-        # self.hand_fingertips = ["index_link_3", "middle_link_3", "ring_link_3", "thumb_link_3"]
-        # self.fingertip_offsets = np.array(
-        #     [[0.05, 0.005, 0], [0.05, 0.005, 0], [0.05, 0.005, 0], [0.06, 0.005, 0]], dtype=np.float32
-        # )
-        # palm_offset = np.array([-0.00, -0.02, 0.16], dtype=np.float32)
-
-        
-
-        # can be only "full_state"
+        self.object_types = ["banana", "mug", "apple", "stapler", "suger", "bowl", "pie", "peach", "pear", "pen", "washer", "poker", "scissors"]
+        self.num_asset = len(self.object_types)
         self.obs_type = self.cfg["env"]["observationType"]
 
-        if not (self.obs_type in ["full_state"]):
-            raise Exception("Unknown type of observations!")
+        if not (self.obs_type in ["openai", "full_no_vel", "full", "full_state"]):
+            raise Exception(
+                "Unknown type of observations!\nobservationType should be one of: [openai, full_no_vel, full, full_state]")
 
         print("Obs type:", self.obs_type)
 
         num_dof_pos = num_dof_vel = self.num_hand_arm_dofs * self.num_arms
-
         palm_pos_size = 3 * self.num_arms
         palm_rot_vel_angvel_size = 10 * self.num_arms
-
         obj_rot_vel_angvel_size = 0  # 10
-
         fingertip_rel_pos_size = 3 * self.num_hand_fingertips * self.num_arms
-
         keypoints_rel_palm_size = self.num_keypoints * 3 * self.num_arms
-        # add goal_kp_rel_palm
         goal_kp_rel_palm_size = self.num_keypoints * 3 * self.num_arms
         keypoints_rel_goal_size = self.num_keypoints * 3
-
         object_scales_size = 0  # 3
         max_keypoint_dist_size = 1
         lifted_object_flag_size = 1
         progress_obs_size = 1 + 1
-
-        # commented out for now - not used in 2-hand env
-        # closest_fingertip_distance_size = self.num_hand_fingertips * self.num_arms
         reward_obs_size = 1
-
         self.full_state_size = (
             num_dof_pos
             + num_dof_vel
@@ -252,31 +178,29 @@ class TwoHandArmsPoint2Point(TwoHandArmsBase,VecTask):
             "full_state": self.full_state_size,
         }
 
-        self.up_axis = "z"
+        self.hand_fingertips = ["fingertip_link1", "fingertip_link2", "fingertip_link3", "thumb_fingertip_link"]
+        self.fingertip_offsets = np.array([[0.0, -0.01, 0.04], [0.0, -0.01, 0.04], [0.0, -0.01, 0.04], [0.06, 0.015, 0.0]], dtype=np.float32)
+        self.palm_offset = np.array([0.00, 0.12, 0.00], dtype=np.float32)
+        assert self.num_hand_fingertips == len(self.hand_fingertips)
 
+        self.up_axis = "z"
+        self.use_vel_obs = False
         self.fingertip_obs = True
 
         self.cfg["env"]["numObservations"] = self.num_obs_dict[self.obs_type]
         self.cfg["env"]["numStates"] = num_states
         self.cfg["env"]["numActions"] = self.num_hand_arm_actions
 
-        # self.cfg["device_type"] = sim_device.split(":")[0]
-        # self.cfg["device_id"] = int(sim_device.split(":")[1])
-        # self.cfg["headless"] = headless
+        self.cfg["device_type"] = device_type
+        self.cfg["device_id"] = device_id
+        self.cfg["headless"] = headless
 
-        VecTask.__init__(
-            self, config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id,
-            headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render,
-        )
+        super().__init__(cfg=self.cfg, is_meta=True)
 
         if self.viewer is not None:
-            self.set_viewer_pos()
-            
-        # volume to sample target position from
-        target_volume_origin, target_volume_extent = self.set_space_of_target_pos()
-        
-        self.target_volume_origin = torch.from_numpy(target_volume_origin).to(self.device).float()
-        self.target_volume_extent = torch.from_numpy(target_volume_extent).to(self.device).float()
+            cam_pos = gymapi.Vec3(0.0, 1.8, 2.0)
+            cam_target = gymapi.Vec3(-0.2, 0.0, 0.4)
+            self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
 
         # get gym GPU state tensors
         actor_root_state_tensor = self.gym.acquire_actor_root_state_tensor(self.sim)
@@ -289,60 +213,37 @@ class TwoHandArmsPoint2Point(TwoHandArmsBase,VecTask):
 
         # create some wrapper tensors for different slices
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
-
-        self.hand_arm_default_dof_pos = torch.zeros(
-            [self.num_arms, self.num_hand_arm_dofs], dtype=torch.float, device=self.device
-        )
-        
-        desired_hand_pos = self.set_arm_default_pos()
-        
-        
-        self.hand_arm_default_dof_pos[0, :6] = desired_hand_pos
-
-        desired_hand_pos = self.set_arm_default_pos()
-        
-        self.hand_arm_default_dof_pos[1, :6] = desired_hand_pos
-
-        self.pos_noise_coeff = torch.zeros_like(self.hand_arm_default_dof_pos, device=self.device)
-        self.pos_noise_coeff[:, 0:7] = self.reset_dof_pos_noise_arm
-        self.pos_noise_coeff[:, 7 : self.num_hand_arm_dofs] = self.reset_dof_pos_noise_fingers
-        self.pos_noise_coeff = self.pos_noise_coeff.flatten()
-        self.hand_arm_default_dof_pos = self.hand_arm_default_dof_pos.flatten()
-
         self.hand_arm_dof_state = self.dof_state.view(self.num_envs, -1, 2)[:, : self.num_hand_arm_dofs * self.num_arms]
         # this will have dimensions [num_envs, num_arms * num_hand_arm_dofs]
         self.hand_arm_dof_pos = self.hand_arm_dof_state[..., 0]
         self.hand_arm_dof_vel = self.hand_arm_dof_state[..., 1]
-
         self.rigid_body_states = gymtorch.wrap_tensor(rigid_body_tensor).view(self.num_envs, -1, 13)
         self.num_bodies = self.rigid_body_states.shape[1]
 
-        self.root_state_tensor = gymtorch.wrap_tensor(actor_root_state_tensor).view(-1, 13)
+        self.hand_arm_default_dof_pos = torch.zeros([self.num_arms, self.num_hand_arm_dofs], dtype=torch.float, device=self.device)
+        desired_hand_pos_0 = torch.tensor([-1.571, -2.8, 2.2, -2.53, -1.47, 0.])
+        desired_hand_pos_1 = torch.tensor([-1.571, -2.8, 2.2, -2.53, -1.47, 0.])
+        self.hand_arm_default_dof_pos[0, :6] = desired_hand_pos_0      
+        self.hand_arm_default_dof_pos[1, :6] = desired_hand_pos_1
+        self.hand_arm_default_dof_pos = self.hand_arm_default_dof_pos.flatten()
 
+        self.root_state_tensor = gymtorch.wrap_tensor(actor_root_state_tensor).view(-1, 13)
         self.palm_center_offset = torch.from_numpy(self.palm_offset).to(self.device).repeat((self.num_envs, 1))
         self.palm_center_pos = torch.zeros((self.num_envs, self.num_arms, 3), dtype=torch.float, device=self.device)
-
         self.fingertip_offsets = torch.from_numpy(self.fingertip_offsets).to(self.device).repeat((self.num_envs, 1, 1))
-
         self.set_actor_root_state_object_indices: List[Tensor] = []
 
-        self.prev_targets = torch.zeros(
-            (self.num_envs, self.num_arms * self.num_hand_arm_dofs), dtype=torch.float, device=self.device
-        )
-        self.cur_targets = torch.zeros(
-            (self.num_envs, self.num_arms * self.num_hand_arm_dofs), dtype=torch.float, device=self.device
-        )
+        self.prev_targets = torch.zeros((self.num_envs, self.num_arms * self.num_hand_arm_dofs), dtype=torch.float, device=self.device)
+        self.cur_targets = torch.zeros((self.num_envs, self.num_arms * self.num_hand_arm_dofs), dtype=torch.float, device=self.device)
 
-        self.global_indices = torch.arange(self.num_envs * 3, dtype=torch.int32, device=self.device).view(
-            self.num_envs, -1
-        )
+        self.global_indices = torch.arange(self.num_envs * 3, dtype=torch.int32, device=self.device).view(self.num_envs, -1)
         self.x_unit_tensor = to_torch([1, 0, 0], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
         self.y_unit_tensor = to_torch([0, 1, 0], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
         self.z_unit_tensor = to_torch([0, 0, 1], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
 
         self.reset_goal_buf = self.reset_buf.clone()
         self.successes = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
-        self.prev_episode_successes = torch.zeros_like(self.successes)
+        self.consecutive_successes = torch.zeros(1, dtype=torch.float, device=self.device)
 
         # true objective value for the whole episode, plus saving values for the previous episode
         self.true_objective = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
@@ -359,44 +260,22 @@ class TwoHandArmsPoint2Point(TwoHandArmsBase,VecTask):
             * torch.rand(self.num_envs, device=self.device)
             + torch.log(self.force_prob_range[1])
         )
-
         self.rb_forces = torch.zeros((self.num_envs, self.num_bodies, 3), dtype=torch.float, device=self.device)
         self.action_torques = torch.zeros((self.num_envs, self.num_bodies, 3), dtype=torch.float, device=self.device)
 
-        self.obj_keypoint_pos = torch.zeros(
-            (self.num_envs, self.num_keypoints, 3), dtype=torch.float, device=self.device
-        )
-        self.goal_keypoint_pos = torch.zeros(
-            (self.num_envs, self.num_keypoints, 3), dtype=torch.float, device=self.device
-        )
-
-        # how many steps we were within the goal tolerance
+        # core variables for rewards calculation
         self.near_goal_steps = torch.zeros(self.num_envs, dtype=torch.int, device=self.device)
-
         self.lifted_object = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         self.closest_keypoint_max_dist = -torch.ones(self.num_envs, dtype=torch.float, device=self.device)
         self.closest_catch_arm_goal_dist = -torch.ones(self.num_envs, dtype=torch.float, device=self.device)
-
-        self.closest_fingertip_dist = -torch.ones(
-            [self.num_envs, self.num_arms, self.num_hand_fingertips], dtype=torch.float, device=self.device
-        )
-        self.finger_rew_coeffs = torch.ones(
-            [self.num_envs, self.num_hand_fingertips], dtype=torch.float, device=self.device
-        )
-        self.last_fingertip_dist = -torch.ones(
-            [self.num_envs, self.num_arms, self.num_hand_fingertips], dtype=torch.float, device=self.device
-        )
-        self.fingertip_dist_variation = -torch.ones(
-            [self.num_envs, self.num_arms, self.num_hand_fingertips], dtype=torch.float, device=self.device
-        )
-        self.last_fingertip_pos_offset = torch.zeros([self.num_envs, self.num_arms, self.num_hand_fingertips, 3], 
-                                                    dtype=torch.float, device=self.device)
-        self.fingertip_pos_offset = torch.zeros([self.num_envs, self.num_arms * self.num_hand_fingertips, 3], 
-                                                    dtype=torch.float, device=self.device)
+        self.closest_fingertip_dist = -torch.ones([self.num_envs, self.num_arms, self.num_hand_fingertips], dtype=torch.float, device=self.device)
+        self.last_fingertip_dist = -torch.ones([self.num_envs, self.num_arms, self.num_hand_fingertips], dtype=torch.float, device=self.device)
+        self.fingertip_dist_variation = -torch.ones([self.num_envs, self.num_arms, self.num_hand_fingertips], dtype=torch.float, device=self.device)
+        self.last_fingertip_pos_offset = torch.zeros([self.num_envs, self.num_arms, self.num_hand_fingertips, 3], dtype=torch.float, device=self.device)
+        self.fingertip_pos_offset = torch.zeros([self.num_envs, self.num_arms * self.num_hand_fingertips, 3], dtype=torch.float, device=self.device)
         # help to differ the rewards of different arms
         self.throw_arm = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
         self.catch_arm = torch.ones(self.num_envs, dtype=torch.long, device=self.device)
-
         reward_keys = [
             "raw_fingertip_delta_rew",
             "raw_lifting_rew",
@@ -410,35 +289,12 @@ class TwoHandArmsPoint2Point(TwoHandArmsBase,VecTask):
             "catch_palm_close_goal_rew",
             "outside_punish",
         ]
-
         self.rewards_episode = {
             key: torch.zeros(self.num_envs, dtype=torch.float, device=self.device) for key in reward_keys
         }
 
-        self.last_curriculum_update = 0
-
-        self.episode_root_state_tensors = [[] for _ in range(self.num_envs)]
-        self.episode_dof_states = [[] for _ in range(self.num_envs)]
-
-        self.eval_stats: bool = self.cfg["env"]["evalStats"]
-        if self.eval_stats:
-            self.last_success_step = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
-            self.success_time = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
-            self.total_num_resets = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
-            self.successes_count = torch.zeros(
-                self.max_consecutive_successes + 1, dtype=torch.float, device=self.device
-            )
-            from tensorboardX import SummaryWriter
-
-            self.eval_summary_dir = "./eval_summaries"
-            # remove the old directory if it exists
-            if os.path.exists(self.eval_summary_dir):
-                import shutil
-
-                shutil.rmtree(self.eval_summary_dir)
-            self.eval_summaries = SummaryWriter(self.eval_summary_dir, flush_secs=3)
-
-    # AllegroKukaBase abstract interface - to be overriden in derived classes
+        self.total_successes = 0
+        self.total_resets = 0
 
     def _object_keypoint_offsets(self):
         raise NotImplementedError()
@@ -448,7 +304,7 @@ class TwoHandArmsPoint2Point(TwoHandArmsBase,VecTask):
         object_start_pose.p = gymapi.Vec3()
         object_start_pose.p.x = 0.0
 
-        pose_dy, pose_dz = table_pose_dy, table_pose_dz + 0.10 + self.z_up
+        pose_dy, pose_dz = table_pose_dy, table_pose_dz + 0.10
 
         object_start_pose.p.y = arms_y_ofs + pose_dy
         object_start_pose.p.z = pose_dz
@@ -1187,65 +1043,6 @@ class TwoHandArmsPoint2Point(TwoHandArmsBase,VecTask):
         # print('total_reward:', self.rewards_episode["total_reward"].item())
 
         return self.rew_buf, is_success
-
-    def _eval_stats(self, is_success: Tensor) -> None:
-        if self.eval_stats:
-            frame: int = self.frame_since_restart
-            n_frames = torch.empty_like(self.last_success_step).fill_(frame)
-            self.success_time = torch.where(is_success, n_frames - self.last_success_step, self.success_time)
-            self.last_success_step = torch.where(is_success, n_frames, self.last_success_step)
-            mask_ = self.success_time > 0
-            if any(mask_):
-                avg_time_mean = ((self.success_time * mask_).sum(dim=0) / mask_.sum(dim=0)).item()
-            else:
-                avg_time_mean = math.nan
-
-            self.total_resets = self.total_resets + self.reset_buf.sum()
-            self.total_successes = self.total_successes + (self.successes * self.reset_buf).sum()
-            self.total_num_resets += self.reset_buf
-
-            reset_ids = self.reset_buf.nonzero().squeeze()
-            last_successes = self.successes[reset_ids].long()
-            self.successes_count[last_successes] += 1
-
-            if frame % 100 == 0:
-                # The direct average shows the overall result more quickly, but slightly undershoots long term
-                # policy performance.
-                print(f"Max num successes: {self.successes.max().item()}")
-                print(f"Average consecutive successes: {self.prev_episode_successes.mean().item():.2f}")
-                print(f"Total num resets: {self.total_num_resets.sum().item()} --> {self.total_num_resets}")
-                print(f"Reset percentage: {(self.total_num_resets > 0).sum() / self.num_envs:.2%}")
-                print(f"Last ep successes: {self.prev_episode_successes.mean().item():.2f}")
-                print(f"Last ep true objective: {self.prev_episode_true_objective.mean().item():.2f}")
-
-                self.eval_summaries.add_scalar("last_ep_successes", self.prev_episode_successes.mean().item(), frame)
-                self.eval_summaries.add_scalar(
-                    "last_ep_true_objective", self.prev_episode_true_objective.mean().item(), frame
-                )
-                self.eval_summaries.add_scalar(
-                    "reset_stats/reset_percentage", (self.total_num_resets > 0).sum() / self.num_envs, frame
-                )
-                self.eval_summaries.add_scalar("reset_stats/min_num_resets", self.total_num_resets.min().item(), frame)
-
-                self.eval_summaries.add_scalar("policy_speed/avg_success_time_frames", avg_time_mean, frame)
-                frame_time = self.control_freq_inv * self.dt
-                self.eval_summaries.add_scalar(
-                    "policy_speed/avg_success_time_seconds", avg_time_mean * frame_time, frame
-                )
-                self.eval_summaries.add_scalar(
-                    "policy_speed/avg_success_per_minute", 60.0 / (avg_time_mean * frame_time), frame
-                )
-                print(f"Policy speed (successes per minute): {60.0 / (avg_time_mean * frame_time):.2f}")
-
-                # create a matplotlib bar chart of the self.successes_count
-                import matplotlib.pyplot as plt
-
-                plt.bar(list(range(self.max_consecutive_successes + 1)), self.successes_count.cpu().numpy())
-                plt.title("Successes histogram")
-                plt.xlabel("Successes")
-                plt.ylabel("Frequency")
-                plt.savefig(f"{self.eval_summary_dir}/successes_histogram.png")
-                plt.clf()
 
     def compute_observations(self) -> Tuple[Tensor, int]:
         self.gym.refresh_dof_state_tensor(self.sim)
