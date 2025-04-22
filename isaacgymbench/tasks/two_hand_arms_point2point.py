@@ -77,7 +77,14 @@ class TwoHandArmsPoint2Point(VecTask):
         self.lifting_bonus_threshold = 0.55  # 0.55
         self.success_steps: int = 50  # oringin 15, set 40 in order to improve catch quality
         self.catch_arm_extra_ofs: float = 0.20
-        self.catch_arm_board: float = -0.70 # -0.90
+        self.catch_arm_x_right_board: float = -0.70 # -0.90
+        self.throw_arm_x_left_board: float = 0.90
+        self.catch_arm_y_board: float = 1.0
+        self.throw_arm_y_board: float = 1.0
+        self.catch_arm_z_up_board: float = 1.25
+        self.throw_arm_z_up_board: float = 1.25
+        self.catch_arm_z_down_board: float = 0.20
+        self.throw_arm_z_down_board: float = 0.25
         self.max_consecutive_successes = 1 # 50
 
         if self.reset_time > 0.0:
@@ -120,9 +127,9 @@ class TwoHandArmsPoint2Point(VecTask):
         palm_rot_vel_angvel_size = 10 * self.num_arms
         obj_rot_vel_angvel_size = 0  # 10
         fingertip_rel_pos_size = 3 * self.num_hand_fingertips * self.num_arms
-        keypoints_rel_palm_size = self.num_keypoints * 3 * self.num_arms
-        goal_kp_rel_palm_size = self.num_keypoints * 3 * self.num_arms
-        keypoints_rel_goal_size = self.num_keypoints * 3
+        keypoints_rel_palm_size = 3 * self.num_arms
+        goal_kp_rel_palm_size = 3 * self.num_arms
+        keypoints_rel_goal_size = 3
         object_scales_size = 0  # 3
         max_keypoint_dist_size = 1
         lifted_object_flag_size = 1
@@ -216,11 +223,8 @@ class TwoHandArmsPoint2Point(VecTask):
 
         self.reset_goal_buf = self.reset_buf.clone()
         self.successes = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
+        self.prev_episode_successes = torch.zeros_like(self.successes)
         self.consecutive_successes = torch.zeros(1, dtype=torch.float, device=self.device)
-
-        # true objective value for the whole episode, plus saving values for the previous episode
-        self.true_objective = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
-        self.prev_episode_true_objective = torch.zeros_like(self.true_objective)
 
         self.total_successes = 0
         self.total_resets = 0
@@ -241,9 +245,7 @@ class TwoHandArmsPoint2Point(VecTask):
         self.lifted_object = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         self.closest_keypoint_max_dist = -torch.ones(self.num_envs, dtype=torch.float, device=self.device)
         self.closest_catch_arm_goal_dist = -torch.ones(self.num_envs, dtype=torch.float, device=self.device)
-        self.closest_fingertip_dist = -torch.ones([self.num_envs, self.num_arms, self.num_hand_fingertips], dtype=torch.float, device=self.device)
         self.last_fingertip_dist = -torch.ones([self.num_envs, self.num_arms, self.num_hand_fingertips], dtype=torch.float, device=self.device)
-        self.fingertip_dist_variation = -torch.ones([self.num_envs, self.num_arms, self.num_hand_fingertips], dtype=torch.float, device=self.device)
         self.last_fingertip_pos_offset = torch.zeros([self.num_envs, self.num_arms, self.num_hand_fingertips, 3], dtype=torch.float, device=self.device)
         self.fingertip_pos_offset = torch.zeros([self.num_envs, self.num_arms * self.num_hand_fingertips, 3], dtype=torch.float, device=self.device)
         # help to differ the rewards of different arms
@@ -450,118 +452,79 @@ class TwoHandArmsPoint2Point(VecTask):
         self.goal_object_indices = to_torch(goal_object_indices, dtype=torch.long, device=self.device)
 
     def _distance_delta_rewards(self, lifted_object: Tensor) -> Tensor:
-        fingertip_deltas_closest = self.closest_fingertip_dist - self.curr_fingertip_distances
         fingertip_dist_variation = self.last_fingertip_dist - self.curr_fingertip_distances
-        self.closest_fingertip_dist = torch.minimum(self.closest_fingertip_dist, self.curr_fingertip_distances)
-
-        # clip between zero and +inf to turn deltas into rewards
-        # fingertip_deltas = torch.clip(fingertip_deltas_closest, 0, 10)
         throw_arm_fingertip_dist_variation = fingertip_dist_variation[torch.arange(self.num_envs), self.throw_arm, :]
         fingertip_deltas = torch.clip(throw_arm_fingertip_dist_variation, -5, 10)
-        # print('throw_arm_fingertip_dist_variation:', throw_arm_fingertip_dist_variation[0, 0].item())
-        fingertip_deltas *= self.finger_rew_coeffs
         fingertip_delta_rew = torch.sum(fingertip_deltas, dim=-1)
-        # add this reward only before the object is lifted off the table
-        # after this, we should be guided only by keypoint and bonus rewards
         fingertip_delta_rew *= ~lifted_object
-        # update the last fingertip dist
         self.last_fingertip_dist = self.curr_fingertip_distances.clone()
-        self.fingertip_dist_variation = fingertip_dist_variation.clone()
 
         return fingertip_delta_rew
 
     def _lifting_reward(self) -> Tuple[Tensor, Tensor, Tensor]:
-        """Reward for lifting the object off the table."""
-
         z_lift_all = -0.05 + self.object_pos[:, 2] - self.object_rebirth_state[:, 2]
         z_lift = self.object_pos[:, 2] - self.last_object_pos[:, 2]
         z_lift_used = torch.where((torch.mean(self.curr_fingertip_distances[torch.arange(self.num_envs), self.throw_arm, :], dim=-1) > 0.20) & (z_lift > 0), 
                                   torch.zeros_like(z_lift), z_lift)
         lifting_rew = torch.clip(z_lift_used, -0.5, 0.5)
-
-        # this flag tells us if we lifted an object above a certain height compared to the initial position
         lifted_object = ((z_lift_all > self.lifting_bonus_threshold) &
                           (torch.mean(self.curr_fingertip_distances[torch.arange(self.num_envs), self.throw_arm, :], dim=-1) < 0.20)) | self.lifted_object
-
-        # Since we stop rewarding the agent for height after the object is lifted, we should give it large positive reward
-        # to compensate for "lost" opportunity to get more lifting reward for sitting just below the threshold.
-        # This bonus depends on the max lifting reward (lifting reward coeff * threshold) and the discount factor
-        # (i.e. the effective future horizon for the agent)
-        # For threshold 0.15, lifting reward coeff = 3 and gamma 0.995 (effective horizon ~500 steps)
-        # a value of 300 for the bonus reward seems reasonable
         just_lifted_above_threshold = lifted_object & ~self.lifted_object
         lift_bonus_rew = self.lifting_bonus * just_lifted_above_threshold
-
-        # stop giving lifting reward once we crossed the threshold - now the agent can focus entirely on the
-        # keypoint reward
         lifting_rew *= ~lifted_object
-
-        # update the last object position
         self.last_object_pos = self.object_pos.clone()
-
-        # update the flag that describes whether we lifted an object above the table or not
         self.lifted_object = lifted_object
+
         return lifting_rew, lift_bonus_rew, lifted_object
     
     def _catch_arm_close_goal_reward(self, lifted_object: Tensor) -> Tensor:
-        # print("goal pos:", self.goal_pos[0, :])
-        # print("palm pos:", self.palm_center_pos[0, 0, :])
         catch_arm_keypoints_rel_palm = self.goal_kp_rel_palm[torch.arange(self.num_envs), self.catch_arm, :]
         catch_arm_keypoints_rel_palm_dist = torch.norm(catch_arm_keypoints_rel_palm, dim=-1)
-        # print("palm_goal_dist:", catch_arm_keypoints_rel_palm_dist[0].item())
         catch_arm_close_goal_delta = self.closest_catch_arm_goal_dist - catch_arm_keypoints_rel_palm_dist
         self.closest_catch_arm_goal_dist = torch.minimum(self.closest_catch_arm_goal_dist, catch_arm_keypoints_rel_palm_dist)
         catch_arm_kp_dist_rew = torch.clip(catch_arm_close_goal_delta, -10, 10)
-        catch_arm_kp_dist_rew *= 2500
+        catch_arm_kp_dist_rew *= self.catch_arm_close_goal_rew_scale
         catch_arm_kp_dist_rew *= (lifted_object & (self.closest_catch_arm_goal_dist < 0.4))
 
         return catch_arm_kp_dist_rew
 
     def _keypoint_reward(self, lifted_object: Tensor) -> Tensor:
-        # this is positive if we got closer, negative if we're further away
         max_keypoint_deltas = self.closest_keypoint_max_dist - self.keypoints_max_dist
-
-        # update the values if we got closer to the target
         self.closest_keypoint_max_dist = torch.minimum(self.closest_keypoint_max_dist, self.keypoints_max_dist)
-
-        # clip between zero and +inf to turn deltas into rewards
         max_keypoint_deltas = torch.clip(max_keypoint_deltas, 0, 100)
-
-        # administer reward only when we already lifted an object from the table
-        # to prevent the situation where the agent just rolls it around the table
         keypoint_rew = max_keypoint_deltas * lifted_object
 
         return keypoint_rew
 
     def _compute_resets(self, is_success):
-        resets = torch.where(self.object_pos[:, 2] < 0.1, torch.ones_like(self.reset_buf), self.reset_buf)  # fall
+        resets = torch.where(self.object_pos[:, 2] < 0.1, torch.ones_like(self.reset_buf), self.reset_buf)
         if self.max_consecutive_successes > 0:
-            # Reset progress buffer if max_consecutive_successes > 0
             self.progress_buf = torch.where(is_success > 0, torch.zeros_like(self.progress_buf), self.progress_buf)
             resets = torch.where(self.successes >= self.max_consecutive_successes, torch.ones_like(resets), resets)
         resets = torch.where(self.progress_buf >= self.max_episode_length - 1, torch.ones_like(resets), resets)
         catch_arm_palm_center_pos = self.palm_center_pos[torch.arange(self.num_envs), self.catch_arm, :]
         throw_arm_palm_center_pos = self.palm_center_pos[torch.arange(self.num_envs), self.throw_arm, :]
-        # -1.1(-1.8) 1.25(1.40) 0.20 -1.0 1.0
-        catch_arm_palm_pos_reset_condition = (catch_arm_palm_center_pos[:, 0] < self.catch_arm_board) | \
-                                      (catch_arm_palm_center_pos[:, 2] > 1.25) | \
-                                      (catch_arm_palm_center_pos[:, 2] < 0.20) | \
-                                      (catch_arm_palm_center_pos[:, 1] < -1.0) | \
-                                      (catch_arm_palm_center_pos[:, 1] > 1.0)
-        throw_arm_palm_pos_reset_condition = (throw_arm_palm_center_pos[:, 0] > 0.9) | \
-                                      (throw_arm_palm_center_pos[:, 2] > 1.25) | \
-                                      (throw_arm_palm_center_pos[:, 2] < 0.25) | \
-                                      (throw_arm_palm_center_pos[:, 1] < -1.0) | \
-                                      (throw_arm_palm_center_pos[:, 1] > 1.0)
+        catch_arm_palm_pos_reset_condition = (
+            (catch_arm_palm_center_pos[:, 0] < self.catch_arm_x_right_board) |
+            (catch_arm_palm_center_pos[:, 2] > self.catch_arm_z_up_board) |
+            (catch_arm_palm_center_pos[:, 2] < self.catch_arm_z_down_board) |
+            (catch_arm_palm_center_pos[:, 1] < self.catch_arm_y_board) |
+            (catch_arm_palm_center_pos[:, 1] > self.catch_arm_y_board)
+        )
+        
+        throw_arm_palm_pos_reset_condition = (
+            (throw_arm_palm_center_pos[:, 0] > self.throw_arm_x_left_board) |
+            (throw_arm_palm_center_pos[:, 2] > self.throw_arm_z_up_board) |
+            (throw_arm_palm_center_pos[:, 2] < self.throw_arm_z_down_board) |
+            (throw_arm_palm_center_pos[:, 1] < -self.throw_arm_y_board) |
+            (throw_arm_palm_center_pos[:, 1] > self.throw_arm_y_board)
+        )
         condition = throw_arm_palm_pos_reset_condition | catch_arm_palm_pos_reset_condition
         resets = torch.where(condition, torch.ones_like(resets), resets)
-        resets = self._extra_reset_rules(resets)
-        outside_punish = -1500 * torch.ones(self.num_envs, dtype=torch.float, device=self.device)
+        outside_punish = self.outside_punish * torch.ones(self.num_envs, dtype=torch.float, device=self.device)
         outside_punish *= condition
-        return resets, outside_punish
 
-    def _true_objective(self):
-        raise NotImplementedError()
+        return resets, outside_punish
 
     def compute_point2point_reward(self) -> Tuple[Tensor, Tensor]:
         lifting_rew, lift_bonus_rew, lifted_object = self._lifting_reward()
@@ -569,12 +532,8 @@ class TwoHandArmsPoint2Point(VecTask):
         catch_palm_close_goal_rew = self._catch_arm_close_goal_reward(lifted_object)
         keypoint_rew = self._keypoint_reward(lifted_object)
 
-        keypoint_success_tolerance = self.success_tolerance * self.keypoint_scale
-
-        # noinspection PyTypeChecker
-        near_goal: Tensor = self.keypoints_max_dist <= keypoint_success_tolerance
+        near_goal: Tensor = self.keypoints_max_dist <= self.success_tolerance
         self.near_goal_steps += near_goal
-
         is_success = self.near_goal_steps >= self.success_steps
         goal_resets = is_success
         self.successes += is_success
@@ -588,9 +547,6 @@ class TwoHandArmsPoint2Point(VecTask):
         fingertip_delta_rew *= self.distance_delta_rew_scale
         lifting_rew *= self.lifting_rew_scale
         keypoint_rew *= self.keypoint_rew_scale
-
-        # Success bonus: orientation is within `success_tolerance` of goal orientation
-        # We spread out the reward over "success_steps"
         bonus_rew = near_goal * (self.reach_goal_bonus / self.success_steps)
         reward = fingertip_delta_rew + lifting_rew + lift_bonus_rew + keypoint_rew + bonus_rew + catch_palm_close_goal_rew  # + outside_punish
 
@@ -600,14 +556,6 @@ class TwoHandArmsPoint2Point(VecTask):
         self.reset_buf[:] = resets
 
         self.extras["successes"] = self.prev_episode_successes.mean()
-        self.true_objective = self._true_objective()
-        self.extras["true_objective"] = self.true_objective
-
-        # scalars for logging
-        self.extras["true_objective_mean"] = self.true_objective.mean()
-        self.extras["true_objective_min"] = self.true_objective.min()
-        self.extras["true_objective_max"] = self.true_objective.max()
-
         rewards = [
             (fingertip_delta_rew, "fingertip_delta_rew"),
             (lifting_rew, "lifting_rew"),
@@ -618,29 +566,12 @@ class TwoHandArmsPoint2Point(VecTask):
             (catch_palm_close_goal_rew, "catch_palm_close_goal_rew"),
             (outside_punish, "outside_punish")
         ]
-
         episode_cumulative = dict()
         for rew_value, rew_name in rewards:
             self.rewards_episode[rew_name] += rew_value
             episode_cumulative[rew_name] = rew_value
         self.extras["rewards_episode"] = self.rewards_episode
         self.extras["episode_cumulative"] = episode_cumulative
-
-        # when test
-        # print("is success:", is_success.item())
-        # print("near_goal_steps:", self.near_goal_steps.item())
-        # print("fingertip_delta_rew:", self.rewards_episode["fingertip_delta_rew"].item())
-        # print("lifting_rew:", self.rewards_episode["lifting_rew"].item())
-        # print("lift_bonus_rew:", self.rewards_episode["lift_bonus_rew"].item())
-        # # print("close_object_not_lift_rew:", self.rewards_episode["close_object_not_lift_rew"].item())
-        # print("catch_palm_close_goal_rew:", self.rewards_episode["catch_palm_close_goal_rew"].item())
-        # # print("direction_reward:", self.rewards_episode["direction_reward"].item())
-        # print("lifted_object:", lifted_object.item())
-        # print("keypoint_rew:", self.rewards_episode["keypoint_rew"].item())
-        # # print("arm_actions_penalty:", self.rewards_episode["arm_actions_penalty"].item())
-        # # print("hand_actions_penalty:", self.rewards_episode["hand_actions_penalty"].item())
-        # print("bonus_rew:", self.rewards_episode["bonus_rew"].item())
-        # print('total_reward:', self.rewards_episode["total_reward"].item())
 
         return self.rew_buf, is_success
 
@@ -661,103 +592,50 @@ class TwoHandArmsPoint2Point(VecTask):
         self.goal_rot = self.goal_states[:, 3:7]
 
         self._palm_state = self.rigid_body_states[:, self.hand_palm_handles]
-        palm_pos = self._palm_state[..., 0:3]  # [num_envs, num_arms, 3]
-        # print(palm_pos[0, 0, :])
-        self._palm_rot = self._palm_state[..., 3:7]  # [num_envs, num_arms, 4]
+        palm_pos = self._palm_state[..., 0:3]
+        self._palm_rot = self._palm_state[..., 3:7]
         for arm_idx in range(self.num_arms):
-            self.palm_center_pos[:, arm_idx] = palm_pos[:, arm_idx] + quat_rotate(
-                self._palm_rot[:, arm_idx], self.palm_center_offset
-            )
+            self.palm_center_pos[:, arm_idx] = palm_pos[:, arm_idx] + quat_rotate(self._palm_rot[:, arm_idx], self.palm_center_offset)
 
         self.fingertip_state = self.rigid_body_states[:, self.hand_fingertip_handles][:, :, 0:13]
         self.fingertip_pos = self.fingertip_state[:, :, 0:3]
         self.fingertip_rot = self.fingertip_state[:, :, 3:7]
-
-        if hasattr(self, "fingertip_pos_rel_object"):
-            self.fingertip_pos_rel_object_prev[:, :, :] = self.fingertip_pos_rel_object
-        else:
-            self.fingertip_pos_rel_object_prev = None
 
         self.last_fingertip_pos_offset = self.fingertip_pos_offset.clone()
         self.fingertip_pos_offset = torch.zeros_like(self.fingertip_pos).to(self.device)
         for arm_idx in range(self.num_arms):
             for i in range(self.num_hand_fingertips):
                 finger_idx = arm_idx * self.num_hand_fingertips + i
-                self.fingertip_pos_offset[:, finger_idx] = self.fingertip_pos[:, finger_idx] + quat_rotate(
-                    self.fingertip_rot[:, finger_idx], self.fingertip_offsets[:, i]
-                )
+                self.fingertip_pos_offset[:, finger_idx] = self.fingertip_pos[:, finger_idx] + quat_rotate(self.fingertip_rot[:, finger_idx], self.fingertip_offsets[:, i])
 
-        # print(self.palm_center_pos[0, 0, :])
-        # print(self.fingertip_pos_offset[0, 6, :])
         obj_pos_repeat = self.object_pos.unsqueeze(1).repeat(1, self.num_arms * self.num_hand_fingertips, 1)
         self.fingertip_pos_rel_object = self.fingertip_pos_offset - obj_pos_repeat
-        self.curr_fingertip_distances = torch.norm(
-            self.fingertip_pos_rel_object.view(self.num_envs, self.num_arms, self.num_hand_fingertips, -1), dim=-1
-        )
+        self.curr_fingertip_distances = torch.norm(self.fingertip_pos_rel_object.view(self.num_envs, self.num_arms, self.num_hand_fingertips, -1), dim=-1)
+        self.last_fingertip_dist = torch.where(self.last_fingertip_dist < 0.0, self.curr_fingertip_distances, self.last_fingertip_dist)
 
-        # when episode ends or target changes we reset this to -1, this will initialize it to the actual distance on the 1st frame of the episode
-        self.closest_fingertip_dist = torch.where(
-            self.closest_fingertip_dist < 0.0, self.curr_fingertip_distances, self.closest_fingertip_dist
-        )
-        self.last_fingertip_dist = torch.where(
-            self.last_fingertip_dist < 0.0, self.curr_fingertip_distances, self.last_fingertip_dist
-        )
+        palm_center_repeat = self.palm_center_pos.unsqueeze(2).repeat(1, 1, self.num_hand_fingertips, 1)
+        self.fingertip_pos_rel_palm = self.fingertip_pos_offset - palm_center_repeat.view(self.num_envs, self.num_arms * self.num_hand_fingertips, 3)  
 
-        palm_center_repeat = self.palm_center_pos.unsqueeze(2).repeat(
-            1, 1, self.num_hand_fingertips, 1
-        )  # [num_envs, num_arms, num_hand_fingertips, 3] == [num_envs, 2, 4, 3]
-        self.fingertip_pos_rel_palm = self.fingertip_pos_offset - palm_center_repeat.view(
-            self.num_envs, self.num_arms * self.num_hand_fingertips, 3
-        )  # [num_envs, num_arms * num_hand_fingertips, 3] == [num_envs, 8, 3]
+        self.keypoints_rel_goal = self.object_pos - self.goal_pos
+        self.last_keypoints_rel_goal = self.last_object_pos[:, 0:3].view(self.num_envs, -1, 3) - self.goal_pos
 
-        if self.fingertip_pos_rel_object_prev is None:
-            self.fingertip_pos_rel_object_prev = self.fingertip_pos_rel_object.clone()
-
-        for i in range(self.num_keypoints):
-            self.obj_keypoint_pos[:, i] = self.object_pos + quat_rotate(
-                self.object_rot, self.object_keypoint_offsets[:, i]
-            )
-            self.goal_keypoint_pos[:, i] = self.goal_pos + quat_rotate(
-                self.goal_rot, self.object_keypoint_offsets[:, i]
-            )
-
-        self.keypoints_rel_goal = self.obj_keypoint_pos - self.goal_keypoint_pos
-        self.last_keypoints_rel_goal = self.last_object_pos[:, 0:3].view(self.num_envs, -1, 3) - self.goal_keypoint_pos
-
-        palm_center_repeat = self.palm_center_pos.unsqueeze(2).repeat(1, 1, self.num_keypoints, 1)
-        obj_kp_pos_repeat = self.obj_keypoint_pos.unsqueeze(1).repeat(1, self.num_arms, 1, 1)
-        goal_kp_pos_repeat = self.goal_keypoint_pos.unsqueeze(1).repeat(1, self.num_arms, 1, 1)
+        palm_center_repeat = self.palm_center_pos.unsqueeze(2).repeat(1, 1, 1, 1)
+        obj_kp_pos_repeat = self.object_pos.unsqueeze(1).repeat(1, self.num_arms, 1, 1)
+        goal_kp_pos_repeat = self.goal_pos.unsqueeze(1).repeat(1, self.num_arms, 1, 1)
         self.keypoints_rel_palm = obj_kp_pos_repeat - palm_center_repeat
-        self.keypoints_rel_palm = self.keypoints_rel_palm.view(self.num_envs, self.num_arms * self.num_keypoints, 3)
+        self.keypoints_rel_palm = self.keypoints_rel_palm.view(self.num_envs, self.num_arms, 3)
         self.goal_kp_rel_palm = goal_kp_pos_repeat - palm_center_repeat
-        self.goal_kp_rel_palm = self.goal_kp_rel_palm.view(self.num_envs, self.num_arms * self.num_keypoints, 3)
-        self.goal_kp_rel_palm[:, :, 2] -= 0.05  # for the hand catch below the object 0.05
-        # self.goal_kp_rel_palm[:, :, 2] += 0.075  # for the hand catch above the object
-
-        # self.keypoints_rel_palm = self.obj_keypoint_pos - palm_center_repeat.view(
-        #     self.num_envs, self.num_arms * self.num_keypoints, 3
-        # )
+        self.goal_kp_rel_palm = self.goal_kp_rel_palm.view(self.num_envs, self.num_arms, 3)
+        self.goal_kp_rel_palm[:, :, 2] -= 0.05 
 
         self.keypoint_distances_l2 = torch.norm(self.keypoints_rel_goal, dim=-1)
-
-        # furthest keypoint from the goal
         self.keypoints_max_dist = self.keypoint_distances_l2.max(dim=-1).values
-
-        # this is the closest the keypoint had been to the target in the current episode (for the furthest keypoint of all)
-        # make sure we initialize this value before using it for obs or rewards
-        self.closest_keypoint_max_dist = torch.where(
-            self.closest_keypoint_max_dist < 0.0, self.keypoints_max_dist, self.closest_keypoint_max_dist
-        )
-        self.closest_catch_arm_goal_dist = torch.where(
-            self.closest_catch_arm_goal_dist < 0.0, torch.norm(self.goal_kp_rel_palm[torch.arange(self.num_envs), self.catch_arm, :], dim=-1), self.closest_catch_arm_goal_dist
-        )
+        self.closest_keypoint_max_dist = torch.where(self.closest_keypoint_max_dist < 0.0, self.keypoints_max_dist, self.closest_keypoint_max_dist)
+        self.closest_catch_arm_goal_dist = torch.where(self.closest_catch_arm_goal_dist < 0.0, torch.norm(self.goal_kp_rel_palm[torch.arange(self.num_envs), self.catch_arm, :], dim=-1), self.closest_catch_arm_goal_dist)
 
         if self.obs_type == "full_state":
             full_state_size, reward_obs_ofs = self.compute_full_state(self.obs_buf)
-            assert (
-                full_state_size == self.full_state_size
-            ), f"Expected full state size {self.full_state_size}, actual: {full_state_size}"
-
+            assert (full_state_size == self.full_state_size), f"Expected full state size {self.full_state_size}, actual: {full_state_size}"
             return self.obs_buf, reward_obs_ofs
         else:
             raise ValueError("Unkown observations type!")
@@ -765,117 +643,47 @@ class TwoHandArmsPoint2Point(VecTask):
     def compute_full_state(self, buf: Tensor) -> Tuple[int, int]:
         num_dofs = self.num_hand_arm_dofs * self.num_arms
         ofs: int = 0
-
-        # dof positions
         buf[:, ofs : ofs + num_dofs] = unscale(
             self.hand_arm_dof_pos[:, :num_dofs],
             self.hand_arm_dof_lower_limits[:num_dofs],
             self.hand_arm_dof_upper_limits[:num_dofs],
         )
         ofs += num_dofs
-
-        # dof velocities
         buf[:, ofs : ofs + num_dofs] = self.hand_arm_dof_vel[:, :num_dofs]
         ofs += num_dofs
-
-        # palm pos
         num_palm_coords = 3 * self.num_arms
         buf[:, ofs : ofs + num_palm_coords] = self.palm_center_pos.view(self.num_envs, num_palm_coords)
         ofs += num_palm_coords
-
-        # palm rot, linvel, ang vel
         num_palm_rot_vel_angvel = 10 * self.num_arms
-        buf[:, ofs : ofs + num_palm_rot_vel_angvel] = self._palm_state[..., 3:13].reshape(
-            self.num_envs, num_palm_rot_vel_angvel
-        )
+        buf[:, ofs : ofs + num_palm_rot_vel_angvel] = self._palm_state[..., 3:13].reshape(self.num_envs, num_palm_rot_vel_angvel)
         ofs += num_palm_rot_vel_angvel
-
         # object rot, linvel, ang vel
         # buf[:, ofs : ofs + 10] = self.object_state[:, 3:13]
         # ofs += 10
-
-        # fingertip pos relative to the palm of the hand
         fingertip_rel_pos_size = 3 * self.num_arms * self.num_hand_fingertips
-        buf[:, ofs : ofs + fingertip_rel_pos_size] = self.fingertip_pos_rel_palm.reshape(
-            self.num_envs, fingertip_rel_pos_size
-        )
+        buf[:, ofs : ofs + fingertip_rel_pos_size] = self.fingertip_pos_rel_palm.reshape(self.num_envs, fingertip_rel_pos_size)
         ofs += fingertip_rel_pos_size
-
-        # keypoint distances relative to the palm of the hand
-        keypoint_rel_palm_size = 3 * self.num_arms * self.num_keypoints
-        buf[:, ofs : ofs + keypoint_rel_palm_size] = self.keypoints_rel_palm.reshape(
-            self.num_envs, keypoint_rel_palm_size
-        )
+        keypoint_rel_palm_size = 3 * self.num_arms
+        buf[:, ofs : ofs + keypoint_rel_palm_size] = self.keypoints_rel_palm.reshape(self.num_envs, keypoint_rel_palm_size)
         ofs += keypoint_rel_palm_size
-        buf[:, ofs : ofs + keypoint_rel_palm_size] = self.goal_kp_rel_palm.reshape(
-            self.num_envs, keypoint_rel_palm_size
-        )
+        buf[:, ofs : ofs + keypoint_rel_palm_size] = self.goal_kp_rel_palm.reshape(self.num_envs, keypoint_rel_palm_size)
         ofs += keypoint_rel_palm_size
-
-        # keypoint distances relative to the goal
-        keypoint_rel_pos_size = 3 * self.num_keypoints
-        buf[:, ofs : ofs + keypoint_rel_pos_size] = self.keypoints_rel_goal.reshape(
-            self.num_envs, keypoint_rel_pos_size
-        )
+        keypoint_rel_pos_size = 3
+        buf[:, ofs : ofs + keypoint_rel_pos_size] = self.keypoints_rel_goal.reshape(self.num_envs, keypoint_rel_pos_size)
         ofs += keypoint_rel_pos_size
-
-        # object scales
-        # buf[:, ofs : ofs + 3] = self.object_scales
-        # ofs += 3
-
-        # closest distance to the furthest of all keypoints achieved so far in this episode
         buf[:, ofs : ofs + 1] = self.closest_keypoint_max_dist.unsqueeze(-1)
-        # print(f"closest_keypoint_max_dist: {self.closest_keypoint_max_dist[0]}")
         ofs += 1
-
-        # commented out for 2-hand version to minimize the number of observations
-        # closest distance between a fingertip and an object achieved since last target reset
-        # this should help the critic predict the anticipated fingertip reward
-        # buf[:, ofs : ofs + self.num_hand_fingertips] = self.closest_fingertip_dist
-        # print(f"closest_fingertip_dist: {self.closest_fingertip_dist[0]}")
-        # ofs += self.num_hand_fingertips
-
-        # indicates whether we already lifted the object from the table or not, should help the critic be more accurate
         buf[:, ofs : ofs + 1] = self.lifted_object.unsqueeze(-1)
-        # print(f"Lifted object: {self.lifted_object[0]}")
         ofs += 1
-
-        # this should help the critic predict the future rewards better and anticipate the episode termination
         buf[:, ofs : ofs + 1] = torch.log(self.progress_buf / 10 + 1).unsqueeze(-1)
         ofs += 1
         buf[:, ofs : ofs + 1] = torch.log(self.successes + 1).unsqueeze(-1)
         ofs += 1
-
-        # actions
-        # buf[:, ofs : ofs + self.num_actions] = self.actions
-        # ofs += self.num_actions
-
-        # state_str = [f"{state.item():.3f}" for state in buf[0, : self.full_state_size]]
-        # print(' '.join(state_str))
-
-        # this is where we will add the reward observation
         reward_obs_ofs = ofs
         ofs += 1
 
         assert ofs == self.full_state_size
         return ofs, reward_obs_ofs
-
-    def clamp_obs(self, obs_buf: Tensor) -> None:
-        if self.clamp_abs_observations > 0:
-            obs_buf.clamp_(-self.clamp_abs_observations, self.clamp_abs_observations)
-
-    def get_random_quat(self, env_ids):
-        # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py
-        # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py#L261
-
-        uvw = torch_rand_float(0, 1.0, (len(env_ids), 3), device=self.device)
-        q_w = torch.sqrt(1.0 - uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 1]))
-        q_x = torch.sqrt(1.0 - uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 1]))
-        q_y = torch.sqrt(uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 2]))
-        q_z = torch.sqrt(uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 2]))
-        new_rot = torch.cat((q_x.unsqueeze(-1), q_y.unsqueeze(-1), q_z.unsqueeze(-1), q_w.unsqueeze(-1)), dim=-1)
-
-        return new_rot
 
     def reset_target_pose(self, env_ids: Tensor) -> None:
         self._reset_target(env_ids)
@@ -936,7 +744,6 @@ class TwoHandArmsPoint2Point(VecTask):
         self.root_state_tensor[obj_indices, 7:13] = torch.zeros_like(self.root_state_tensor[obj_indices, 7:13])
 
         # since we reset the object, we also should update distances between fingers and the object
-        self.closest_fingertip_dist[env_ids] = -1
         self.last_fingertip_dist[env_ids] = -1
 
     def deferred_set_actor_root_state_tensor_indexed(self, obj_indices: List[Tensor]) -> None:
@@ -1023,16 +830,12 @@ class TwoHandArmsPoint2Point(VecTask):
         self.prev_episode_successes[env_ids] = self.successes[env_ids]
         self.successes[env_ids] = 0
 
-        self.prev_episode_true_objective[env_ids] = self.true_objective[env_ids]
-        self.true_objective[env_ids] = 0
-
         self.lifted_object[env_ids] = False
 
         # -1 here indicates that the value is not initialized
         self.closest_keypoint_max_dist[env_ids] = -1
         self.closest_catch_arm_goal_dist[env_ids] = -1
 
-        self.closest_fingertip_dist[env_ids] = -1
         self.last_fingertip_dist[env_ids] = -1
 
         self.near_goal_steps[env_ids] = 0
@@ -1040,9 +843,6 @@ class TwoHandArmsPoint2Point(VecTask):
         for key in self.rewards_episode.keys():
             # print(f"{env_ids}: {key}: {self.rewards_episode[key][env_ids]}")
             self.rewards_episode[key][env_ids] = 0
-
-        self.extras["scalars"] = dict()
-        self.extras["scalars"]["success_tolerance"] = self.success_tolerance
 
     def pre_physics_step(self, actions):
         self.actions = actions.clone().to(self.device)
@@ -1124,7 +924,8 @@ class TwoHandArmsPoint2Point(VecTask):
         reward_obs_scale = 0.01
         obs_buf[:, reward_obs_ofs : reward_obs_ofs + 1] = rewards.unsqueeze(-1) * reward_obs_scale
 
-        self.clamp_obs(obs_buf)
+        if self.clamp_abs_observations > 0:
+            obs_buf.clamp_(-self.clamp_abs_observations, self.clamp_abs_observations)
 
         self._eval_stats(is_success)
 
