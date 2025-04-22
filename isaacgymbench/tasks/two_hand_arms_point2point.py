@@ -1,30 +1,9 @@
-# Copyright (c) 2018-2023, NVIDIA Corporation
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# 1. Redistributions of source code must retain the above copyright notice, this
-#    list of conditions and the following disclaimer.
-#
-# 2. Redistributions in binary form must reproduce the above copyright notice,
-#    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
-#
-# 3. Neither the name of the copyright holder nor the names of its
-#    contributors may be used to endorse or promote products derived from
-#    this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Copyright (c) 2020, NVIDIA CORPORATION.  All rights reserved.
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 import math
 import os
@@ -32,8 +11,6 @@ import tempfile
 from copy import copy
 from os.path import join
 from typing import List, Tuple
-# for camera 
-import cv2
 
 from isaacgym import gymapi, gymtorch, gymutil
 from torch import Tensor
@@ -51,11 +28,6 @@ from utils.torch_jit_utils import *
 
 class TwoHandArmsPoint2Point(VecTask):
     def __init__(self, cfg, sim_params, physics_engine, device_type, device_id, headless):
-
-        # for camera
-        self.frame_num = 0
-        self.using_camera = False
-
         self.num_arm_dofs = 6
         self.num_finger_dofs = 4
         self.num_hand_fingertips = 4
@@ -67,6 +39,7 @@ class TwoHandArmsPoint2Point(VecTask):
 
         self.cfg = cfg
         self.sim_params = sim_params
+        self.dof_params: DofParameters = DofParameters.from_cfg(self.cfg)
         self.frame_since_restart: int = 0
         self.clamp_abs_observations: float = self.cfg["env"]["clampAbsObservations"]
         self.num_hand_arm_actions = self.num_hand_arm_dofs * self.num_arms
@@ -289,115 +262,16 @@ class TwoHandArmsPoint2Point(VecTask):
             "catch_palm_close_goal_rew",
             "outside_punish",
         ]
-        self.rewards_episode = {
-            key: torch.zeros(self.num_envs, dtype=torch.float, device=self.device) for key in reward_keys
-        }
+        self.rewards_episode = {key: torch.zeros(self.num_envs, dtype=torch.float, device=self.device) for key in reward_keys}
 
         self.total_successes = 0
         self.total_resets = 0
-
-    def _object_keypoint_offsets(self):
-        raise NotImplementedError()
-
-    def _object_start_pose(self, arms_y_ofs: float, table_pose_dy: float, table_pose_dz: float):
-        object_start_pose = gymapi.Transform()
-        object_start_pose.p = gymapi.Vec3()
-        object_start_pose.p.x = 0.0
-
-        pose_dy, pose_dz = table_pose_dy, table_pose_dz + 0.10
-
-        object_start_pose.p.y = arms_y_ofs + pose_dy
-        object_start_pose.p.z = pose_dz
-
-        return object_start_pose
-
-    def _main_object_assets_and_scales(self, object_asset_root, tmp_assets_dir):
-        object_asset_files, object_asset_scales = self._box_asset_files_and_scales(object_asset_root, tmp_assets_dir)
-        if not self.randomize_object_dimensions:
-            object_asset_files = object_asset_files[:1]
-            object_asset_scales = object_asset_scales[:1]
-
-        # randomize order
-        files_and_scales = list(zip(object_asset_files, object_asset_scales))
-
-        # use fixed seed here to make sure when we restart from checkpoint the distribution of object types is the same
-        rng = np.random.default_rng(42)
-        rng.shuffle(files_and_scales)
-
-        object_asset_files, object_asset_scales = zip(*files_and_scales)
-        return object_asset_files, object_asset_scales
-
-    def _load_main_object_asset(self):
-        """Load manipulated object and goal assets."""
-        object_asset_options = gymapi.AssetOptions()
-        object_assets = []
-        for object_asset_file in self.object_asset_files:
-            object_asset_dir = os.path.dirname(object_asset_file)
-            object_asset_fname = os.path.basename(object_asset_file)
-            object_asset_ = self.gym.load_asset(self.sim, object_asset_dir, object_asset_fname, object_asset_options)
-            object_assets.append(object_asset_)
-        object_rb_count = self.gym.get_asset_rigid_body_count(
-            object_assets[0]
-        )  # assuming all of them have the same rb count
-        object_shapes_count = self.gym.get_asset_rigid_shape_count(
-            object_assets[0]
-        )  # assuming all of them have the same rb count
-        return object_assets, object_rb_count, object_shapes_count
-
-    def _load_additional_assets(self, object_asset_root, arm_y_offset: float) -> Tuple[int, int]:
-        """
-        returns: tuple (num_rigid_bodies, num_shapes)
-        """
-        return 0, 0
-
-    def _create_additional_objects(self, env_ptr, env_idx, object_asset_idx):
-        pass
-
-    def _after_envs_created(self):
-        pass
-
-    def _extra_reset_rules(self, resets):
-        return resets
-
-    def _reset_target(self, env_ids: Tensor) -> None:
-        raise NotImplementedError()
-
-    def _extra_object_indices(self, env_ids: Tensor) -> List[Tensor]:
-        return []
-
-    def _extra_curriculum(self):
-        pass
-
-    # AllegroKukaBase implementation
-    def get_env_state(self):
-        """
-        Return serializable environment state to be saved to checkpoint.
-        Can be used for stateful training sessions, i.e. with adaptive curriculums.
-        """
-        return dict(
-            success_tolerance=self.success_tolerance,
-        )
-
-    def set_env_state(self, env_state):
-        if env_state is None:
-            return
-
-        for key in self.get_env_state().keys():
-            value = env_state.get(key, None)
-            if value is None:
-                continue
-
-            self.__dict__[key] = value
-            print(f"Loaded env state value {key}:{value}")
-
-        print(f"Success tolerance value after loading from checkpoint: {self.success_tolerance}")
-
-    # noinspection PyMethodOverriding
+    
     def create_sim(self):
         self.dt = self.sim_params.dt
-        self.up_axis_idx = 2  # index of up axis: Y=1, Z=2 (same as in allegro_hand.py)
+        self.up_axis_idx = self.set_sim_params_up_axis(self.sim_params, self.up_axis)
 
-        self.sim = VecTask.create_sim(self, self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
+        self.sim = super().create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
         self._create_ground_plane()
         self._create_envs(self.num_envs, self.cfg["env"]["envSpacing"], int(np.sqrt(self.num_envs)))
 
@@ -406,264 +280,131 @@ class TwoHandArmsPoint2Point(VecTask):
         plane_params.normal = gymapi.Vec3(0.0, 0.0, 1.0)
         self.gym.add_ground(self.sim, plane_params)
 
-    def _box_asset_files_and_scales(self, object_assets_root, generated_assets_dir):
-        files = []
-        scales = []
-
-        try:
-            filenames = os.listdir(generated_assets_dir)
-            for fname in filenames:
-                if fname.endswith(".urdf"):
-                    os.remove(join(generated_assets_dir, fname))
-        except Exception as exc:
-            print(f"Exception {exc} while removing older procedurally-generated urdf assets")
-
-        objects_rel_path = os.path.dirname(self.asset_files_dict[self.object_type])
-        objects_dir = join(object_assets_root, objects_rel_path)
-        base_mesh = join(objects_dir, "meshes", "cube_multicolor.obj")
-
-        generate_default_cube(generated_assets_dir, base_mesh, self.object_base_size)
-
-        if self.with_small_cuboids:
-            generate_small_cuboids(generated_assets_dir, base_mesh, self.object_base_size)
-        if self.with_big_cuboids:
-            generate_big_cuboids(generated_assets_dir, base_mesh, self.object_base_size)
-        if self.with_sticks:
-            generate_sticks(generated_assets_dir, base_mesh, self.object_base_size)
-
-        filenames = os.listdir(generated_assets_dir)
-        filenames = sorted(filenames)
-
-        for fname in filenames:
-            if fname.endswith(".urdf"):
-                scale_tokens = os.path.splitext(fname)[0].split("_")[2:]
-                files.append(join(generated_assets_dir, fname))
-                scales.append([float(scale_token) / 100 for scale_token in scale_tokens])
-
-        return files, scales
-
     def _create_envs(self, num_envs, spacing, num_per_row):
         lower = gymapi.Vec3(-spacing, -spacing, 0.0)
         upper = gymapi.Vec3(spacing, spacing, spacing)
 
-        asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../assets")
-
-        object_asset_root = asset_root
-        tmp_assets_dir = tempfile.TemporaryDirectory()
-        self.object_asset_files, self.object_asset_scales = self._main_object_assets_and_scales(
-            object_asset_root, tmp_assets_dir.name
-        )
+        asset_root = "../../assets"
 
         asset_options = gymapi.AssetOptions()
-        asset_options.fix_base_link = True # True
+        asset_options.fix_base_link = True
         asset_options.flip_visual_attachments = True
         asset_options.collapse_fixed_joints = True
-        asset_options.disable_gravity = False # True
+        asset_options.disable_gravity = False
         asset_options.thickness = 0.001
         asset_options.angular_damping = 0.01
         asset_options.linear_damping = 0.01
-        asset_options.vhacd_enabled = True # False
+        asset_options.vhacd_enabled = True
 
         if self.physics_engine == gymapi.SIM_PHYSX:
             asset_options.use_physx_armature = True
         asset_options.default_dof_drive_mode = gymapi.DOF_MODE_POS
 
-        print(f"Loading asset {self.hand_arm_asset_file} from {asset_root}")
         hand_arm_asset = self.gym.load_asset(self.sim, asset_root, self.hand_arm_asset_file, asset_options)
-        print(f"Loaded asset {hand_arm_asset}")
 
         num_hand_arm_bodies = self.gym.get_asset_rigid_body_count(hand_arm_asset)
         num_hand_arm_shapes = self.gym.get_asset_rigid_shape_count(hand_arm_asset)
         num_hand_arm_dofs = self.gym.get_asset_dof_count(hand_arm_asset)
-        assert (
-            self.num_hand_arm_dofs == num_hand_arm_dofs
-        ), f"Number of DOFs in asset {hand_arm_asset} is {num_hand_arm_dofs}, but {self.num_hand_arm_dofs} was expected"
-
-        max_agg_bodies = all_arms_bodies = num_hand_arm_bodies * self.num_arms
-        max_agg_shapes = all_arms_shapes = num_hand_arm_shapes * self.num_arms
-
-        hand_arm_rigid_body_names = [
-            self.gym.get_asset_rigid_body_name(hand_arm_asset, i) for i in range(num_hand_arm_bodies)
-        ]
-        print(f"Allegro num rigid bodies: {num_hand_arm_bodies}")
-        print(f"Allegro rigid bodies: {hand_arm_rigid_body_names}")
-
-        # allegro_actuated_dof_names = [self.gym.get_asset_actuator_joint_name(allegro_asset, i) for i in range(self.num_allegro_dofs)]
-        # self.allegro_actuated_dof_indices = [self.gym.find_asset_dof_index(allegro_asset, name) for name in allegro_actuated_dof_names]
+        assert (self.num_hand_arm_dofs == num_hand_arm_dofs), f"Number of DOFs in asset {hand_arm_asset} is {num_hand_arm_dofs}, but {self.num_hand_arm_dofs} was expected"
 
         hand_arm_dof_props = self.gym.get_asset_dof_properties(hand_arm_asset)
-
         hand_arm_dof_lower_limits = []
         hand_arm_dof_upper_limits = []
-
         for arm_idx in range(self.num_arms):
             for i in range(self.num_hand_arm_dofs):
                 hand_arm_dof_lower_limits.append(hand_arm_dof_props["lower"][i])
                 hand_arm_dof_upper_limits.append(hand_arm_dof_props["upper"][i])
-
-        # self.allegro_actuated_dof_indices = to_torch(self.allegro_actuated_dof_indices, dtype=torch.long, device=self.device)
         self.hand_arm_dof_lower_limits = to_torch(hand_arm_dof_lower_limits, device=self.device)
         self.hand_arm_dof_upper_limits = to_torch(hand_arm_dof_upper_limits, device=self.device)
 
+        # set arms
         arm_poses = [gymapi.Transform() for _ in range(self.num_arms)]
-        arm_x_ofs, arm_y_ofs = self.arm_x_ofs, self.arm_y_ofs
+        arm_x_ofs = self.cfg["env"]["armXOfs"]
+        arm_y_ofs = self.cfg["env"]["armYOfs"]
         for arm_idx, arm_pose in enumerate(arm_poses):
             x_ofs = arm_x_ofs * (-1 if arm_idx == 0 else 1) + (self.catch_arm_extra_ofs if arm_idx == 0 else 0)
             arm_pose.p = gymapi.Vec3(*get_axis_params(0.0, self.up_axis_idx)) + gymapi.Vec3(x_ofs, arm_y_ofs, 0)
-
-            # arm_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
             if arm_idx == 0:
-                # rotate 1st arm 90 degrees to the left
                 arm_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1), 0)
             else:
-                # rotate 2nd arm 90 degrees to the right
                 arm_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1), math.pi)
 
-        # object_assets, object_rb_count, object_shapes_count = self._load_main_object_asset()
-        # max_agg_bodies += object_rb_count
-        # max_agg_shapes += object_shapes_count
-                
-        # object_assets, object_rb_count, object_shapes_count = self._load_main_object_asset()
+        # set objects
         object_assets = []
-        print(f"Object types: {self.object_types}")
-        print(f"Object types num: {self.num_object_types}")
         object_asset_options = gymapi.AssetOptions()
-        for i in range(self.num_object_types):
+        for i in range(self.num_asset):
             object_asset = self.gym.load_asset(self.sim, asset_root, self.asset_files_dict[self.object_types[i]], object_asset_options)
             object_assets.append(object_asset)
-        object_rb_count = self.gym.get_asset_rigid_body_count(
-            object_assets[0]
-        )  # assuming all of them have the same rb count
-        object_shapes_count = self.gym.get_asset_rigid_shape_count(
-            object_assets[0]
-        )  # assuming all of them have the same rb count
-        max_agg_bodies += object_rb_count
-        max_agg_shapes += object_shapes_count
+        object_rb_count = self.gym.get_asset_rigid_body_count(object_assets[0]) 
+        object_shapes_count = self.gym.get_asset_rigid_shape_count(object_assets[0]) 
 
-        # load auxiliary objects
+        # set table
         table_asset_options = gymapi.AssetOptions()
         table_asset_options.disable_gravity = False
         table_asset_options.fix_base_link = True
         table_asset = self.gym.load_asset(self.sim, asset_root, self.asset_files_dict["table"], table_asset_options)
-
         table_pose = gymapi.Transform()
         table_pose.p = gymapi.Vec3()
         table_pose.p.x = 0.3125
-        # table_pose_dy, table_pose_dz = -0.8, 0.38
         table_pose_dy, table_pose_dz = 0.0, 0.38
         table_pose.p.y = arm_y_ofs + table_pose_dy
         table_pose.p.z = table_pose_dz
-
         table_rb_count = self.gym.get_asset_rigid_body_count(table_asset)
         table_shapes_count = self.gym.get_asset_rigid_shape_count(table_asset)
-        max_agg_bodies += table_rb_count
-        max_agg_shapes += table_shapes_count
 
-        ball_asset_options = gymapi.AssetOptions()
-        ball_asset_options.disable_gravity = True   # Ball should be affected by gravity
-        ball_asset = self.gym.load_asset(self.sim, asset_root, self.asset_files_dict["ball"], ball_asset_options)
-        ball_pose = gymapi.Transform()
-
-        additional_rb, additional_shapes = self._load_additional_assets(object_asset_root, arm_y_ofs)
+        # set goal objects
         goal_assets = []
         goal_asset_options = gymapi.AssetOptions()
         goal_asset_options.disable_gravity = True
-        for i in range(self.num_object_types):
+        for i in range(self.num_asset):
             goal_asset = self.gym.load_asset(self.sim, asset_root, self.asset_files_dict[self.object_types[i]], goal_asset_options)
             goal_assets.append(goal_asset)
-        
-        goal_rb_count = self.gym.get_asset_rigid_body_count(
-            goal_assets[0]
-        )  # assuming all of them have the same rb count
-        goal_shapes_count = self.gym.get_asset_rigid_shape_count(
-            goal_assets[0]
-        )  # assuming all of them have the same rb count
-        max_agg_bodies += goal_rb_count
-        max_agg_shapes += goal_shapes_count
-
-        # scene_asset_options = gymapi.AssetOptions()
-        # scene_asset_options.disable_gravity = False
-        # scene_asset_options.fix_base_link = True
-        # scene_asset_options.override_com = True
-        # scene_asset_options.override_inertia = True
-        # scene_asset_options.vhacd_enabled = True
-        # # scene_asset_options.vhacd_params.resolution = 38400000
-        # # scene_asset_options.vhacd_params.max_convex_hulls = 1280
-        # # scene_asset_options.vhacd_params.max_num_vertices_per_ch = 8192
-        # scene_asset_options.vhacd_params.resolution = 600000
-        # scene_asset_options.vhacd_params.max_convex_hulls = 20
-        # scene_asset_options.vhacd_params.max_num_vertices_per_ch = 128
-        # scene_asset = self.gym.load_asset(self.sim, asset_root, self.scene_asset_files_dict["scene"], scene_asset_options)
-        
-        # scene_pose = gymapi.Transform()
-        # scene_pose.p = gymapi.Vec3()
-        # scene_pose_dx, scene_pose_dy, scene_pose_dz = -3.2, -2.3, 0.0  # -0.8, 0.38
-        # scene_pose.p.x = arm_pose[0].p.x + scene_pose_dx
-        # scene_pose.p.y = arm_pose[0].p.y + scene_pose_dy
-        # scene_pose.p.z = arm_pose[0].p.z + scene_pose_dz
-        # scene_pose.r = gymapi.Quat(0, 0, 1, 1)
-
-        # scene_rb_count = self.gym.get_asset_rigid_body_count(table_asset)
-        # scene_shapes_count = self.gym.get_asset_rigid_shape_count(table_asset)
-        # max_agg_bodies += scene_rb_count
-        # max_agg_shapes += scene_shapes_count
+        goal_rb_count = self.gym.get_asset_rigid_body_count(goal_assets[0]) 
+        goal_shapes_count = self.gym.get_asset_rigid_shape_count(goal_assets[0]) 
 
         # set up object and goal positions
-        self.object_start_pose = self._object_start_pose(arm_y_ofs, table_pose_dy, table_pose_dz)
+        object_start_pose = gymapi.Transform()
+        object_start_pose.p = gymapi.Vec3()
+        object_start_pose.p.x = 0.0
+        pose_dy, pose_dz = table_pose_dy, table_pose_dz + 0.10
+        object_start_pose.p.y = arm_y_ofs + pose_dy
+        object_start_pose.p.z = pose_dz
+        self.object_start_pose = object_start_pose
 
         self.envs = []
-
-        # for camera
-        if self.using_camera:
-            self.cameras = []
-            self.rgb_videowriters = []
-            self.depth_videowriters = []
-
         object_init_state = []
-        object_scales = []
         goal_object_indices = []
-        ball_indices = []
-        ball_indices_1 = []
-        ball_indices_2 = []
-        ball_indices_3 = []
-        ball_indices_4 = []
-        object_keypoint_offsets = []
 
         hand_palm_handle = self.gym.find_asset_rigid_body_index(hand_arm_asset, "wrist3_Link")
-        fingertip_handles = [
-            self.gym.find_asset_rigid_body_index(hand_arm_asset, name) for name in self.hand_fingertips
-        ]
+        fingertip_handles = [self.gym.find_asset_rigid_body_index(hand_arm_asset, name) for name in self.hand_fingertips]
 
         self.hand_palm_handles = []
         self.hand_fingertip_handles = []
         self.extra_handle = []
-        # self.extra_handle.append(self.gym.find_asset_rigid_body_index(hand_arm_asset, "index_link_0"))
         for arm_idx in range(self.num_arms):
             self.hand_palm_handles.append(hand_palm_handle + arm_idx * num_hand_arm_bodies)
             self.hand_fingertip_handles.extend([h + arm_idx * num_hand_arm_bodies for h in fingertip_handles])
 
-        # does this rely on the fact that objects are added right after the arms in terms of create_actor()?
+        all_arms_bodies = num_hand_arm_bodies * self.num_arms
         self.object_rb_handles = list(range(all_arms_bodies, all_arms_bodies + object_rb_count))
-
         self.hand_arm_indices = torch.empty([self.num_envs, self.num_arms], dtype=torch.long, device=self.device)
         self.object_indices = torch.empty(self.num_envs, dtype=torch.long, device=self.device)
+
+        max_agg_bodies = all_arms_bodies + object_rb_count + table_rb_count + goal_rb_count
+        max_agg_shapes = num_hand_arm_shapes * self.num_arms + object_shapes_count + table_shapes_count + goal_shapes_count
 
         assert self.num_envs >= 1
         for i in range(self.num_envs):
             # create env instance
             env_ptr = self.gym.create_env(self.sim, lower, upper, num_per_row)
-
             self.gym.begin_aggregate(env_ptr, max_agg_bodies, max_agg_shapes, True)
 
             # add arms
             for arm_idx in range(self.num_arms):
                 hand_arm = self.gym.create_actor(env_ptr, hand_arm_asset, arm_poses[arm_idx], f"arm{arm_idx}", i, -1, 0)
-
                 populate_dof_properties(hand_arm_dof_props, self.dof_params, self.num_arm_dofs, self.num_hand_dofs)
-
                 self.gym.set_actor_dof_properties(env_ptr, hand_arm, hand_arm_dof_props)
                 hand_arm_idx = self.gym.get_actor_index(env_ptr, hand_arm, gymapi.DOMAIN_SIM)
-
                 self.hand_arm_indices[i, arm_idx] = hand_arm_idx
 
             # add object
@@ -676,145 +417,24 @@ class TwoHandArmsPoint2Point(VecTask):
             object_init_state.append([pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, rot.w, 0, 0, 0, 0, 0, 0])
             object_idx = self.gym.get_actor_index(env_ptr, object_handle, gymapi.DOMAIN_SIM)
             self.object_indices[i] = object_idx
-            self.gym.set_actor_scale(env_ptr, object_handle, self.object_asset_scales_dict[self.object_types[object_asset_idx]])
-
-            object_scale = self.object_asset_scales[object_asset_idx]
-            object_scales.append(object_scale)
-            object_offsets = []
-            for keypoint in self.keypoints_offsets:
-                keypoint = copy(keypoint)
-                for coord_idx in range(3):
-                    keypoint[coord_idx] *= object_scale[coord_idx] * self.object_base_size * self.keypoint_scale / 2
-                object_offsets.append(keypoint)
-
-            object_keypoint_offsets.append(object_offsets)
 
             # table object
             table_handle = self.gym.create_actor(env_ptr, table_asset, table_pose, "table_object", i, 0, 0)
             _table_object_idx = self.gym.get_actor_index(env_ptr, table_handle, gymapi.DOMAIN_SIM)
-            # ball object
-            # ball_handle = self.gym.create_actor(env_ptr, ball_asset, ball_pose, "ball", i + 2*self.num_envs, 0, 0)
-            # ball_object_idx = self.gym.get_actor_index(env_ptr, ball_handle, gymapi.DOMAIN_SIM)
-            # ball_indices.append(ball_object_idx)
-            # self.gym.set_actor_scale(env_ptr, ball_handle, 0.4)
-            # ball_handle = self.gym.create_actor(env_ptr, ball_asset, ball_pose, "ball", i + 3*self.num_envs, 0, 0)
-            # ball_object_idx = self.gym.get_actor_index(env_ptr, ball_handle, gymapi.DOMAIN_SIM)
-            # ball_indices_1.append(ball_object_idx)
-            # self.gym.set_actor_scale(env_ptr, ball_handle, 0.3)
-            # ball_handle = self.gym.create_actor(env_ptr, ball_asset, ball_pose, "ball", i + 4*self.num_envs, 0, 0)
-            # ball_object_idx = self.gym.get_actor_index(env_ptr, ball_handle, gymapi.DOMAIN_SIM)
-            # ball_indices_2.append(ball_object_idx)
-            # self.gym.set_actor_scale(env_ptr, ball_handle, 0.3)
-            # ball_handle = self.gym.create_actor(env_ptr, ball_asset, ball_pose, "ball", i + 5*self.num_envs, 0, 0)
-            # ball_object_idx = self.gym.get_actor_index(env_ptr, ball_handle, gymapi.DOMAIN_SIM)
-            # ball_indices_3.append(ball_object_idx)
-            # self.gym.set_actor_scale(env_ptr, ball_handle, 0.3)
-            # ball_handle = self.gym.create_actor(env_ptr, ball_asset, ball_pose, "ball", i + 6*self.num_envs, 0, 0)
-            # ball_object_idx = self.gym.get_actor_index(env_ptr, ball_handle, gymapi.DOMAIN_SIM)
-            # ball_indices_4.append(ball_object_idx)
-            # self.gym.set_actor_scale(env_ptr, ball_handle, 0.3)
 
-            # task-specific objects (i.e. goal object for reorientation task)
-            self._create_additional_objects(env_ptr, env_idx=i, object_asset_idx=object_asset_idx)
-
-            # wait for modifying the goal
+            # goal object
             self.goal_displacement = gymapi.Vec3(-0.35, -0.06, 0.12)
-            self.goal_displacement_tensor = to_torch(
-                [self.goal_displacement.x, self.goal_displacement.y, self.goal_displacement.z], device=self.device
-            )
             goal_start_pose = gymapi.Transform()
             goal_start_pose.p = self.object_start_pose.p + self.goal_displacement
             goal_start_pose.p.z -= 0.04
-
             goal_asset = goal_assets[object_asset_idx]
-            goal_handle = self.gym.create_actor(
-                env_ptr, goal_asset, goal_start_pose, "goal_object", i + self.num_envs, 0, 0
-            )
+            goal_handle = self.gym.create_actor(env_ptr, goal_asset, goal_start_pose, "goal_object", i + self.num_envs, 0, 0)
             goal_object_idx = self.gym.get_actor_index(env_ptr, goal_handle, gymapi.DOMAIN_SIM)
             goal_object_indices.append(goal_object_idx)
             self.gym.set_actor_scale(env_ptr, goal_handle, 0.0001)
             
-            # scene_actor = self.gym.create_actor(env_ptr, scene_asset, scene_pose, "scene", i, 1, 0)
-            # scene_object_idx = self.gym.get_actor_index(env_ptr, scene_actor, gymapi.DOMAIN_SIM)
-            # self.gym.set_actor_scale(env_ptr, scene_actor, 1.2)
-
-            # for camera
-            if self.using_camera:
-                # Get the camera handle
-                self.camera_props = gymapi.CameraProperties()
-                self.camera_props.horizontal_fov = 120
-                self.camera_props.width = 1260
-                self.camera_props.height = 640
-                self.camera_props.enable_tensors = True
-                camera_handle_0 = self.gym.create_camera_sensor(env_ptr, self.camera_props)
-                camera_handle_1 = self.gym.create_camera_sensor(env_ptr, self.camera_props)
-                camera_handle_2 = self.gym.create_camera_sensor(env_ptr, self.camera_props)
-                camera_handle_3 = self.gym.create_camera_sensor(env_ptr, self.camera_props)
-                # for hand_arm_point2point
-                cam_pos_0 = gymapi.Vec3(0.15, 0.8, 0.85)  # 1.0
-                cam_target_0 = gymapi.Vec3(0.15, 0.0, 0.6)
-                cam_pos_1 = gymapi.Vec3(-0.15, 0.0, 0.9)
-                cam_target_1 = gymapi.Vec3(0.3, 0.0, 0.80)  # 0.85
-                cam_pos_2 = gymapi.Vec3(0.15, -0.8, 0.85)  # -1.0
-                cam_target_2 = gymapi.Vec3(0.15, 0.0, 0.6)
-                cam_pos_3 = gymapi.Vec3(0.15, 0.0, 0.75)  # 0.9
-                cam_target_3 = gymapi.Vec3(-0.3, 0.0, 0.7)  # 0.85
-                self.gym.set_camera_location(camera_handle_0, env_ptr, cam_pos_0, cam_target_0) 
-                self.gym.set_camera_location(camera_handle_1, env_ptr, cam_pos_1, cam_target_1)
-                self.gym.set_camera_location(camera_handle_2, env_ptr, cam_pos_2, cam_target_2)
-                self.gym.set_camera_location(camera_handle_3, env_ptr, cam_pos_3, cam_target_3)
-                # Setup video writer                
-                rgb_video_filename_0 = '/home/lan/Lanfb/sunjq/isaacgym_new20231030/IsaacGymEnvs/runs/0_video/simulation_video_p2p_{}_angle_0.mp4'.format(i)
-                # depth_video_filename_0 = '/home/lan/Lanfb/sunjq/isaacgym_new20231030/IsaacGymEnvs/runs/0_video/depth_simulation_video_p2p_{}_angle_0.mp4'.format(i)
-                rgb_video_filename_1 = '/home/lan/Lanfb/sunjq/isaacgym_new20231030/IsaacGymEnvs/runs/0_video/simulation_video_p2p_{}_angle_1.mp4'.format(i)
-                # depth_video_filename_1 = '/home/lan/Lanfb/sunjq/isaacgym_new20231030/IsaacGymEnvs/runs/0_video/depth_simulation_video_p2p_{}_angle_1.mp4'.format(i)
-                rgb_video_filename_2 = '/home/lan/Lanfb/sunjq/isaacgym_new20231030/IsaacGymEnvs/runs/0_video/simulation_video_p2p_{}_angle_2.mp4'.format(i)
-                # depth_video_filename_2 = '/home/lan/Lanfb/sunjq/isaacgym_new20231030/IsaacGymEnvs/runs/0_video/depth_simulation_video_p2p_{}_angle_2.mp4'.format(i)
-                rgb_video_filename_3 = '/home/lan/Lanfb/sunjq/isaacgym_new20231030/IsaacGymEnvs/runs/0_video/simulation_video_p2p_{}_angle_3.mp4'.format(i)
-                # depth_video_filename_3 = '/home/lan/Lanfb/sunjq/isaacgym_new20231030/IsaacGymEnvs/runs/0_video/depth_simulation_video_p2p_{}_angle_3.mp4'.format(i)
-                fps = 60
-                frame_size = (self.camera_props.width, self.camera_props.height)
-                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                rgb_video_writer_0 = cv2.VideoWriter(rgb_video_filename_0, fourcc, fps, frame_size)
-                # depth_video_writer_0 = cv2.VideoWriter(depth_video_filename_0, fourcc, fps, frame_size)
-                rgb_video_writer_1 = cv2.VideoWriter(rgb_video_filename_1, fourcc, fps, frame_size)
-                # depth_video_writer_1 = cv2.VideoWriter(depth_video_filename_1, fourcc, fps, frame_size)
-                rgb_video_writer_2 = cv2.VideoWriter(rgb_video_filename_2, fourcc, fps, frame_size)
-                # depth_video_writer_2 = cv2.VideoWriter(depth_video_filename_2, fourcc, fps, frame_size)
-                rgb_video_writer_3 = cv2.VideoWriter(rgb_video_filename_3, fourcc, fps, frame_size)
-                # depth_video_writer_3 = cv2.VideoWriter(depth_video_filename_3, fourcc, fps, frame_size)
-                # print('0:', self.gym.get_camera_transform(self.sim, env_ptr, camera_handle_0).r)
-                # print('1:', self.gym.get_camera_transform(self.sim, env_ptr, camera_handle_1).r)
-                # print('2:', self.gym.get_camera_transform(self.sim, env_ptr, camera_handle_2).r)
-                # print('3:', self.gym.get_camera_transform(self.sim, env_ptr, camera_handle_3).r)
-                # print('0:', self.gym.get_camera_transform(self.sim, env_ptr, camera_handle_0).p)
-                # print('1:', self.gym.get_camera_transform(self.sim, env_ptr, camera_handle_1).p)
-                # print('2:', self.gym.get_camera_transform(self.sim, env_ptr, camera_handle_2).p)
-                # print('3:', self.gym.get_camera_transform(self.sim, env_ptr, camera_handle_3).p)
-            
             self.gym.end_aggregate(env_ptr)
-
             self.envs.append(env_ptr)
-            # for camera
-            if self.using_camera:
-                self.cameras.append(camera_handle_0)
-                self.rgb_videowriters.append(rgb_video_writer_0)
-                # self.depth_videowriters.append(depth_video_writer_0)
-                self.cameras.append(camera_handle_1)
-                self.rgb_videowriters.append(rgb_video_writer_1)
-                # self.depth_videowriters.append(depth_video_writer_1)
-                self.cameras.append(camera_handle_2)
-                self.rgb_videowriters.append(rgb_video_writer_2)
-                # self.depth_videowriters.append(depth_video_writer_2)
-                self.cameras.append(camera_handle_3)
-                self.rgb_videowriters.append(rgb_video_writer_3)
-                # self.depth_videowriters.append(depth_video_writer_3)
-
-        # we are not using new mass values after DR when calculating random forces applied to an object,
-        # which should be ok as long as the randomization range is not too big
-        # noinspection PyUnboundLocalVariable
-        object_rb_props = self.gym.get_actor_rigid_body_properties(self.envs[0], object_handle)
-        self.object_rb_masses = [prop.mass for prop in object_rb_props]
 
         self.object_init_state = to_torch(object_init_state, device=self.device, dtype=torch.float).view(
             self.num_envs, 13
@@ -827,31 +447,11 @@ class TwoHandArmsPoint2Point(VecTask):
 
         self.hand_fingertip_handles = to_torch(self.hand_fingertip_handles, dtype=torch.long, device=self.device)
         self.object_rb_handles = to_torch(self.object_rb_handles, dtype=torch.long, device=self.device)
-        self.object_rb_masses = to_torch(self.object_rb_masses, dtype=torch.float, device=self.device)
-
-        self.object_scales = to_torch(object_scales, dtype=torch.float, device=self.device)
-        self.object_keypoint_offsets = to_torch(object_keypoint_offsets, dtype=torch.float, device=self.device)
         self.goal_object_indices = to_torch(goal_object_indices, dtype=torch.long, device=self.device)
-        self.ball_indices = to_torch(ball_indices, dtype=torch.long, device=self.device)
-        self.ball_indices_1 = to_torch(ball_indices_1, dtype=torch.long, device=self.device)
-        self.ball_indices_2 = to_torch(ball_indices_2, dtype=torch.long, device=self.device)
-        self.ball_indices_3 = to_torch(ball_indices_3, dtype=torch.long, device=self.device)
-        self.ball_indices_4 = to_torch(ball_indices_4, dtype=torch.long, device=self.device)
-
-        self._after_envs_created()
-
-        try:
-            # by this point we don't need the temporary folder for procedurally generated assets
-            tmp_assets_dir.cleanup()
-        except Exception:
-            pass
 
     def _distance_delta_rewards(self, lifted_object: Tensor) -> Tensor:
-        """Rewards for fingertips approaching the object or penalty for hand getting further away from the object."""
-        # this is positive if we got closer, negative if we're further away than the closest we've gotten
         fingertip_deltas_closest = self.closest_fingertip_dist - self.curr_fingertip_distances
         fingertip_dist_variation = self.last_fingertip_dist - self.curr_fingertip_distances
-        # update the values if finger tips got closer to the object
         self.closest_fingertip_dist = torch.minimum(self.closest_fingertip_dist, self.curr_fingertip_distances)
 
         # clip between zero and +inf to turn deltas into rewards
@@ -1508,53 +1108,6 @@ class TwoHandArmsPoint2Point(VecTask):
             self.gym.apply_rigid_body_force_tensors(
                 self.sim, gymtorch.unwrap_tensor(self.rb_forces), None, gymapi.LOCAL_SPACE
             )
-
-        # for camera
-        if self.using_camera:
-            self.frame_num += 1
-            print(f"frame_num: {self.frame_num}")
-            # if self.frame_num <= 300:
-                # object_pos_npy = self.root_state_tensor[self.object_indices, 0:3][0].cpu().numpy()
-                # # 追加存储 object_pos_npy
-                # object_pos_file = "/home/lan/Lanfb/sunjq/isaacgym_new20231030/IsaacGymEnvs/runs/0_video/object_pos.npy"
-                # if os.path.exists(object_pos_file):
-                #     existing_data = np.load(object_pos_file)
-                #     object_pos_npy = np.concatenate((existing_data, object_pos_npy[np.newaxis, :]), axis=0)
-                # else:
-                #     object_pos_npy = object_pos_npy[np.newaxis, :]
-                # np.save(object_pos_file, object_pos_npy)
-            for env_id_camera in range(1):  # self.num_envs
-                # Capture frame from the camera sensor
-                self.gym.render_all_camera_sensors(self.sim)
-                rgb_frame_image = self.gym.get_camera_image(self.sim, self.envs[0], self.cameras[env_id_camera], gymapi.IMAGE_COLOR)
-                frame_image_depth = self.gym.get_camera_image(self.sim, self.envs[0], self.cameras[env_id_camera], gymapi.IMAGE_DEPTH)
-
-                # Convert image to OpenCV format and write to video
-                frame_image_rgb = rgb_frame_image.reshape(self.camera_props.height, self.camera_props.width, 4)[:, :, :3]  # Drop alpha channel
-                frame_image_bgr = cv2.cvtColor(frame_image_rgb, cv2.COLOR_RGB2BGR)  # Convert to BGR for OpenCV
-                self.rgb_videowriters[env_id_camera].write(frame_image_bgr)
-                # frame_image_depth[np.isinf(frame_image_depth)] = -256.0
-                # frame_image_depth = np.clip(frame_image_depth, -5.0, 1000.0)
-                # frame_image_depth = frame_image_depth.reshape(self.camera_props.height, self.camera_props.width)
-
-                # 追加存储 frame_image_depth
-                # if self.frame_num <= 300:
-                #     depth_file = f"/home/lan/Lanfb/sunjq/isaacgym_new20231030/IsaacGymEnvs/runs/0_video/frame_image_depth_angle{env_id_camera}.npy"
-                #     if os.path.exists(depth_file):
-                #         existing_depth = np.load(depth_file)
-                #         frame_image_depth = np.concatenate((existing_depth, frame_image_depth[np.newaxis, :, :]), axis=0)
-                #     else:
-                #         frame_image_depth = frame_image_depth[np.newaxis, :, :]
-                #     np.save(depth_file, frame_image_depth)
-
-                # depth_image_normalized = cv2.normalize(frame_image_depth, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-                # depth_image_bgr = cv2.cvtColor(depth_image_normalized, cv2.COLOR_GRAY2BGR)
-                # self.depth_videowriters[env_id_camera].write(depth_image_bgr)
-
-                if self.frame_num == 3600:
-                    self.rgb_videowriters[env_id_camera].release()
-                    # self.depth_videowriters[env_id_camera].release()
-                    print(f"Video saved for env {env_id_camera}")
 
     def post_physics_step(self):
         self.frame_since_restart += 1
