@@ -6,23 +6,11 @@
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 import math
-import os
-import tempfile
-from copy import copy
-from os.path import join
-from typing import List, Tuple
-
-from isaacgym import gymapi, gymtorch, gymutil
+from typing import Tuple
+from isaacgym import gymapi, gymtorch
 from torch import Tensor
-
 from isaacgymenvs.tasks.point2point.two_hand_arms.hand_arm_utils import DofParameters, populate_dof_properties
 from isaacgymenvs.tasks.base.vec_task import VecTask
-from isaacgymenvs.tasks.point2point.generate_cuboids import (
-    generate_big_cuboids,
-    generate_default_cube,
-    generate_small_cuboids,
-    generate_sticks,
-)
 from utils.torch_jit_utils import *
 
 
@@ -40,7 +28,6 @@ class TwoHandArmsPoint2Point(VecTask):
         self.cfg = cfg
         self.sim_params = sim_params
         self.dof_params: DofParameters = DofParameters.from_cfg(self.cfg)
-        self.frame_since_restart: int = 0
         self.clamp_abs_observations: float = self.cfg["env"]["clampAbsObservations"]
         self.num_hand_arm_actions = self.num_hand_arm_dofs * self.num_arms
         self.randomize = self.cfg["task"]["randomize"]
@@ -211,7 +198,6 @@ class TwoHandArmsPoint2Point(VecTask):
         self.palm_center_offset = torch.from_numpy(self.palm_offset).to(self.device).repeat((self.num_envs, 1))
         self.palm_center_pos = torch.zeros((self.num_envs, self.num_arms, 3), dtype=torch.float, device=self.device)
         self.fingertip_offsets = torch.from_numpy(self.fingertip_offsets).to(self.device).repeat((self.num_envs, 1, 1))
-        self.set_actor_root_state_object_indices: List[Tensor] = []
 
         self.prev_targets = torch.zeros((self.num_envs, self.num_arms * self.num_hand_arm_dofs), dtype=torch.float, device=self.device)
         self.cur_targets = torch.zeros((self.num_envs, self.num_arms * self.num_hand_arm_dofs), dtype=torch.float, device=self.device)
@@ -229,17 +215,6 @@ class TwoHandArmsPoint2Point(VecTask):
         self.total_successes = 0
         self.total_resets = 0
 
-        # object apply random forces parameters
-        self.force_decay = to_torch(self.force_decay, dtype=torch.float, device=self.device)
-        self.force_prob_range = to_torch(self.force_prob_range, dtype=torch.float, device=self.device)
-        self.random_force_prob = torch.exp(
-            (torch.log(self.force_prob_range[0]) - torch.log(self.force_prob_range[1]))
-            * torch.rand(self.num_envs, device=self.device)
-            + torch.log(self.force_prob_range[1])
-        )
-        self.rb_forces = torch.zeros((self.num_envs, self.num_bodies, 3), dtype=torch.float, device=self.device)
-        self.action_torques = torch.zeros((self.num_envs, self.num_bodies, 3), dtype=torch.float, device=self.device)
-
         # core variables for rewards calculation
         self.near_goal_steps = torch.zeros(self.num_envs, dtype=torch.int, device=self.device)
         self.lifted_object = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
@@ -249,8 +224,8 @@ class TwoHandArmsPoint2Point(VecTask):
         self.last_fingertip_pos_offset = torch.zeros([self.num_envs, self.num_arms, self.num_hand_fingertips, 3], dtype=torch.float, device=self.device)
         self.fingertip_pos_offset = torch.zeros([self.num_envs, self.num_arms * self.num_hand_fingertips, 3], dtype=torch.float, device=self.device)
         # help to differ the rewards of different arms
-        self.throw_arm = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
-        self.catch_arm = torch.ones(self.num_envs, dtype=torch.long, device=self.device)
+        self.throw_arm = torch.ones(self.num_envs, dtype=torch.long, device=self.device)
+        self.catch_arm = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
         reward_keys = [
             "raw_fingertip_delta_rew",
             "raw_lifting_rew",
@@ -573,8 +548,6 @@ class TwoHandArmsPoint2Point(VecTask):
         self.extras["rewards_episode"] = self.rewards_episode
         self.extras["episode_cumulative"] = episode_cumulative
 
-        return self.rew_buf, is_success
-
     def compute_observations(self) -> Tuple[Tensor, int]:
         self.gym.refresh_dof_state_tensor(self.sim)
         self.gym.refresh_actor_root_state_tensor(self.sim)
@@ -634,9 +607,7 @@ class TwoHandArmsPoint2Point(VecTask):
         self.closest_catch_arm_goal_dist = torch.where(self.closest_catch_arm_goal_dist < 0.0, torch.norm(self.goal_kp_rel_palm[torch.arange(self.num_envs), self.catch_arm, :], dim=-1), self.closest_catch_arm_goal_dist)
 
         if self.obs_type == "full_state":
-            full_state_size, reward_obs_ofs = self.compute_full_state(self.obs_buf)
-            assert (full_state_size == self.full_state_size), f"Expected full state size {self.full_state_size}, actual: {full_state_size}"
-            return self.obs_buf, reward_obs_ofs
+            self.compute_full_state(self.obs_buf)
         else:
             raise ValueError("Unkown observations type!")
 
@@ -681,50 +652,51 @@ class TwoHandArmsPoint2Point(VecTask):
         ofs += 1
         reward_obs_ofs = ofs
         ofs += 1
-
         assert ofs == self.full_state_size
-        return ofs, reward_obs_ofs
 
-    def reset_target_pose(self, env_ids: Tensor) -> None:
-        self._reset_target(env_ids)
+    def reset_target_pose(self, env_ids, apply_reset=False) -> None:
+        # self.reset_object_pose(env_ids)
+        x_pos = torch_rand_float(0.15, 0.45, (len(env_ids), 1), device=self.device) # 0.15(0.15) 0.35(0.45)
+        x_pos_sign = torch.where(self.catch_arm[env_ids].unsqueeze(-1) == 0, -torch.ones_like(x_pos), torch.ones_like(x_pos))
+        x_pos = x_pos * x_pos_sign
+        y_pos = torch_rand_float(-0.30, 0.30, (len(env_ids), 1), device=self.device) # (-0.20)-0.30 (0.20)0.30
+        z_pos = torch_rand_float(0.50, 0.70, (len(env_ids), 1), device=self.device) # 0.40(0.50) 0.55(0.70)
+        self.root_state_tensor[self.goal_object_indices[env_ids], 0:1] = x_pos
+        self.root_state_tensor[self.goal_object_indices[env_ids], 1:2] = y_pos
+        self.root_state_tensor[self.goal_object_indices[env_ids], 2:3] = z_pos + 0.05
+        self.goal_states[env_ids, 0:1] = x_pos
+        self.goal_states[env_ids, 1:2] = y_pos
+        self.goal_states[env_ids, 2:3] = z_pos + 0.05
+        self.lifted_object[env_ids] = False
 
         self.reset_goal_buf[env_ids] = 0
         self.near_goal_steps[env_ids] = 0
         self.closest_keypoint_max_dist[env_ids] = -1
         self.closest_catch_arm_goal_dist[env_ids] = -1
 
-    def reset_object_pose(self, env_ids):
+        if apply_reset:
+            goal_object_indices = self.goal_object_indices[env_ids].to(torch.int32)
+            self.gym.set_actor_root_state_tensor_indexed(self.sim,
+                                                         gymtorch.unwrap_tensor(self.root_state_tensor),
+                                                         gymtorch.unwrap_tensor(goal_object_indices), len(env_ids))
+
+    def reset(self, env_ids, goal_env_ids):
+        # randomization can happen only at reset time, since it can reset actor positions on GPU
+        if self.randomize:
+            self.apply_randomizations(self.randomization_params)
+            
+        self.reset_target_pose(env_ids)
         obj_indices = self.object_indices[env_ids]
+        obj_goal_indices = torch.unique(torch.cat([self.object_indices[env_ids],
+                                                   self.goal_object_indices[env_ids],
+                                                   self.goal_object_indices[goal_env_ids]]).to(torch.int32))
 
         # reset object
-        table_width = 1.1
         obj_x_ofs = 0.35
-
-        # left_right_random = torch_rand_float(-1.0, 1.0, (len(env_ids), 1), device=self.device)
-        left_right_random = torch.ones((len(env_ids), 1), device=self.device)
-        x_pos = torch.where(
-            left_right_random > 0,
-            obj_x_ofs * torch.ones_like(left_right_random),
-            -obj_x_ofs * torch.ones_like(left_right_random),
-        )
-        # reset throwing or catching arms
-        left_right_random_squeezed = left_right_random.squeeze(-1)
-        self.throw_arm[env_ids] = torch.where(
-            left_right_random_squeezed > 0,
-            1, # torch.zeros_like(left_right_random_squeezed, dtype=torch.int),
-            0, # torch.ones_like(left_right_random_squeezed, dtype=torch.int),
-        )
-        self.catch_arm[env_ids] = torch.where(
-            left_right_random_squeezed > 0,
-            0, # torch.ones_like(left_right_random_squeezed, dtype=torch.int),
-            1, # torch.zeros_like(left_right_random_squeezed, dtype=torch.int),
-        )
-        # print("check_problem")
-
+        x_pos = obj_x_ofs
         rand_pos_floats = torch_rand_float(-1.0, 1.0, (len(env_ids), 3), device=self.device)
         self.root_state_tensor[obj_indices] = self.object_init_state[env_ids].clone()
 
-        # indices 0..2 correspond to the object position
         self.root_state_tensor[obj_indices, 0:1] = x_pos + self.reset_position_noise_x * rand_pos_floats[:, 0:1]
         self.root_state_tensor[obj_indices, 1:2] = (
             self.object_init_state[env_ids, 1:2] + self.reset_position_noise_y * rand_pos_floats[:, 1:2]
@@ -733,62 +705,18 @@ class TwoHandArmsPoint2Point(VecTask):
             self.object_init_state[env_ids, 2:3] + self.reset_position_noise_z * rand_pos_floats[:, 2:3]
         )
 
-        new_object_rot = self.get_random_quat(env_ids)
         self.object_rebirth_state[env_ids, 0:3] = self.root_state_tensor[obj_indices, 0:3]
         self.last_object_pos[env_ids, 0:3] = self.object_rebirth_state[env_ids, 0:3]
         self.last_object_pos[env_ids, 2] += 0.075
 
-        # indices 3,4,5,6 correspond to the rotation quaternion
+        new_object_rot = self.get_random_quat(env_ids)
         self.root_state_tensor[obj_indices, 3:7] = new_object_rot
-
         self.root_state_tensor[obj_indices, 7:13] = torch.zeros_like(self.root_state_tensor[obj_indices, 7:13])
 
-        # since we reset the object, we also should update distances between fingers and the object
         self.last_fingertip_dist[env_ids] = -1
-
-    def deferred_set_actor_root_state_tensor_indexed(self, obj_indices: List[Tensor]) -> None:
-        self.set_actor_root_state_object_indices.extend(obj_indices)
-
-    def set_actor_root_state_tensor_indexed(self) -> None:
-        object_indices: List[Tensor] = self.set_actor_root_state_object_indices
-        if not object_indices:
-            # nothing to set
-            return
-
-        unique_object_indices = torch.unique(torch.cat(object_indices).to(torch.int32))
-
-        self.gym.set_actor_root_state_tensor_indexed(
-            self.sim,
-            gymtorch.unwrap_tensor(self.root_state_tensor),
-            gymtorch.unwrap_tensor(unique_object_indices),
-            len(unique_object_indices),
-        )
-
-        self.set_actor_root_state_object_indices = []
-
-    def reset_idx(self, env_ids: Tensor) -> None:
-        # randomization can happen only at reset time, since it can reset actor positions on GPU
-        if self.randomize:
-            self.apply_randomizations(self.randomization_params)
-
-        # randomize start object poses
-        self.reset_target_pose(env_ids)
-
-        # reset rigid body forces
-        self.rb_forces[env_ids, :, :] = 0.0
-
-        # reset target
-        # self.reset_object_pose(env_ids)  # has been done in reset_target_pose
 
         # flattened list of arm actors that we need to reset
         hand_arm_indices = self.hand_arm_indices[env_ids].to(torch.int32).flatten()
-
-        # reset random force probabilities
-        self.random_force_prob[env_ids] = torch.exp(
-            (torch.log(self.force_prob_range[0]) - torch.log(self.force_prob_range[1]))
-            * torch.rand(len(env_ids), device=self.device)
-            + torch.log(self.force_prob_range[1])
-        )
 
         # reset allegro hand
         delta_max = self.hand_arm_dof_upper_limits - self.hand_arm_default_dof_pos
@@ -820,52 +748,39 @@ class TwoHandArmsPoint2Point(VecTask):
             self.sim, gymtorch.unwrap_tensor(self.dof_state), hand_arm_indices_gym, num_hand_arm_indices
         )
 
-        object_indices = [self.object_indices[env_ids]]
-        object_indices.extend(self._extra_object_indices(env_ids))
-        self.deferred_set_actor_root_state_tensor_indexed(object_indices)
+        all_indices = torch.unique(torch.cat([obj_goal_indices, hand_arm_indices]).to(torch.int32))
+        self.gym.set_actor_root_state_tensor_indexed(self.sim,
+                                                     gymtorch.unwrap_tensor(self.root_state_tensor),
+                                                     gymtorch.unwrap_tensor(all_indices), len(all_indices))
 
         self.progress_buf[env_ids] = 0
         self.reset_buf[env_ids] = 0
-
         self.prev_episode_successes[env_ids] = self.successes[env_ids]
         self.successes[env_ids] = 0
-
         self.lifted_object[env_ids] = False
-
-        # -1 here indicates that the value is not initialized
         self.closest_keypoint_max_dist[env_ids] = -1
         self.closest_catch_arm_goal_dist[env_ids] = -1
-
         self.last_fingertip_dist[env_ids] = -1
-
         self.near_goal_steps[env_ids] = 0
 
         for key in self.rewards_episode.keys():
-            # print(f"{env_ids}: {key}: {self.rewards_episode[key][env_ids]}")
             self.rewards_episode[key][env_ids] = 0
 
     def pre_physics_step(self, actions):
         self.actions = actions.clone().to(self.device)
 
-        reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
-        reset_goal_env_ids = self.reset_goal_buf.nonzero(as_tuple=False).squeeze(-1)
+        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        goal_env_ids = self.reset_goal_buf.nonzero(as_tuple=False).squeeze(-1)
 
-        self.reset_target_pose(reset_goal_env_ids)
+        # if only goals need reset, then call set API
+        if len(goal_env_ids) > 0 and len(env_ids) == 0:
+            self.reset_target_pose(goal_env_ids, apply_reset=True)
+        # if goals need reset in addition to other envs, call set API in reset()
+        elif len(goal_env_ids) > 0:
+            self.reset_target_pose(goal_env_ids)
 
-        if len(reset_env_ids) > 0:
-            self.reset_idx(reset_env_ids)
-        # self.root_state_tensor[self.ball_indices, 0:3] = self.root_state_tensor[self.object_indices, 0:3].clone()
-        # self.root_state_tensor[self.ball_indices, 0:3] = self.palm_center_pos[:, 0, 0:3].clone()
-        # self.root_state_tensor[self.ball_indices_1, 0:3] = self.fingertip_pos_offset[:, 0, 0:3].clone()
-        # self.root_state_tensor[self.ball_indices_2, 0:3] = self.fingertip_pos_offset[:, 1, 0:3].clone()
-        # self.root_state_tensor[self.ball_indices_3, 0:3] = self.fingertip_pos_offset[:, 2, 0:3].clone()
-        # self.root_state_tensor[self.ball_indices_4, 0:3] = self.fingertip_pos_offset[:, 3, 0:3].clone()
-        # self.deferred_set_actor_root_state_tensor_indexed([self.ball_indices, self.ball_indices_1, self.ball_indices_2, self.ball_indices_3, self.ball_indices_4])
-        # self.deferred_set_actor_root_state_tensor_indexed([self.ball_indices])
-
-        self.set_actor_root_state_tensor_indexed()
-
-        self.set_actor_root_state_tensor_indexed()
+        if len(env_ids) > 0:
+            self.reset(env_ids, goal_env_ids)
 
         if self.use_relative_control:
             raise NotImplementedError("Use relative control False for now")
@@ -894,82 +809,22 @@ class TwoHandArmsPoint2Point(VecTask):
 
         self.gym.set_dof_position_target_tensor(self.sim, gymtorch.unwrap_tensor(self.cur_targets))
 
-        if self.force_scale > 0.0:
-            self.rb_forces *= torch.pow(self.force_decay, self.dt / self.force_decay_interval)
-
-            # apply new forces
-            force_indices = (torch.rand(self.num_envs, device=self.device) < self.random_force_prob).nonzero()
-            self.rb_forces[force_indices, self.object_rb_handles, :] = (
-                torch.randn(self.rb_forces[force_indices, self.object_rb_handles, :].shape, device=self.device)
-                * self.object_rb_masses
-                * self.force_scale
-            )
-
-            self.gym.apply_rigid_body_force_tensors(
-                self.sim, gymtorch.unwrap_tensor(self.rb_forces), None, gymapi.LOCAL_SPACE
-            )
-
     def post_physics_step(self):
-        self.frame_since_restart += 1
-
         self.progress_buf += 1
         self.randomize_buf += 1
 
-        self._extra_curriculum()
+        self.compute_observations()
+        self.compute_point2point_reward()
 
-        obs_buf, reward_obs_ofs = self.compute_observations()
-        rewards, is_success = self.compute_point2point_reward()
+    def get_random_quat(self, env_ids):
+        # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py
+        # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py#L261
 
-        # add rewards to observations
-        reward_obs_scale = 0.01
-        obs_buf[:, reward_obs_ofs : reward_obs_ofs + 1] = rewards.unsqueeze(-1) * reward_obs_scale
+        uvw = torch_rand_float(0, 1.0, (len(env_ids), 3), device=self.device)
+        q_w = torch.sqrt(1.0 - uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 1]))
+        q_x = torch.sqrt(1.0 - uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 1]))
+        q_y = torch.sqrt(uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 2]))
+        q_z = torch.sqrt(uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 2]))
+        new_rot = torch.cat((q_x.unsqueeze(-1), q_y.unsqueeze(-1), q_z.unsqueeze(-1), q_w.unsqueeze(-1)), dim=-1)
 
-        if self.clamp_abs_observations > 0:
-            obs_buf.clamp_(-self.clamp_abs_observations, self.clamp_abs_observations)
-
-        self._eval_stats(is_success)
-
-        if self.viewer and self.debug_viz:
-            # draw axes on target object
-            self.gym.clear_lines(self.viewer)
-            self.gym.refresh_rigid_body_state_tensor(self.sim)
-
-            axes_geom = gymutil.AxesGeometry(0.1)
-
-            sphere_pose = gymapi.Transform()
-            sphere_pose.r = gymapi.Quat(0, 0, 0, 1)
-            sphere_geom = gymutil.WireframeSphereGeometry(0.01, 8, 8, sphere_pose, color=(1, 1, 0))
-            sphere_geom_white = gymutil.WireframeSphereGeometry(0.02, 8, 8, sphere_pose, color=(1, 1, 1))
-
-            palm_center_pos_cpu = self.palm_center_pos.cpu().numpy()
-            palm_rot_cpu = self._palm_rot.cpu().numpy()
-
-            for i in range(self.num_envs):
-                palm_center_transform = gymapi.Transform()
-                palm_center_transform.p = gymapi.Vec3(*palm_center_pos_cpu[i])
-                palm_center_transform.r = gymapi.Quat(*palm_rot_cpu[i])
-                gymutil.draw_lines(sphere_geom_white, self.gym, self.viewer, self.envs[i], palm_center_transform)
-
-            for j in range(self.num_hand_fingertips):
-                fingertip_pos_cpu = self.fingertip_pos_offset[:, j].cpu().numpy()
-                fingertip_rot_cpu = self.fingertip_rot[:, j].cpu().numpy()
-
-                for i in range(self.num_envs):
-                    fingertip_transform = gymapi.Transform()
-                    fingertip_transform.p = gymapi.Vec3(*fingertip_pos_cpu[i])
-                    fingertip_transform.r = gymapi.Quat(*fingertip_rot_cpu[i])
-
-                    gymutil.draw_lines(sphere_geom, self.gym, self.viewer, self.envs[i], fingertip_transform)
-
-            for j in range(self.num_keypoints):
-                keypoint_pos_cpu = self.obj_keypoint_pos[:, j].cpu().numpy()
-                goal_keypoint_pos_cpu = self.goal_keypoint_pos[:, j].cpu().numpy()
-
-                for i in range(self.num_envs):
-                    keypoint_transform = gymapi.Transform()
-                    keypoint_transform.p = gymapi.Vec3(*keypoint_pos_cpu[i])
-                    gymutil.draw_lines(sphere_geom, self.gym, self.viewer, self.envs[i], keypoint_transform)
-
-                    goal_keypoint_transform = gymapi.Transform()
-                    goal_keypoint_transform.p = gymapi.Vec3(*goal_keypoint_pos_cpu[i])
-                    gymutil.draw_lines(sphere_geom, self.gym, self.viewer, self.envs[i], goal_keypoint_transform)
+        return new_rot
