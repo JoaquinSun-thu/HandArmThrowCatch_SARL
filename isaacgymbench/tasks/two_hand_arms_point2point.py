@@ -385,7 +385,7 @@ class TwoHandArmsPoint2Point(VecTask):
                 self.hand_arm_indices[i, arm_idx] = hand_arm_idx
 
             # add object
-            object_asset_idx = (i + 2) % len(object_assets)
+            object_asset_idx = (i + 0) % len(object_assets)
             object_asset = object_assets[object_asset_idx]
 
             obj_pose = self.object_start_pose
