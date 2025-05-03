@@ -11,10 +11,13 @@ from isaacgym import gymapi, gymtorch
 from torch import Tensor
 from tasks.hand_arm_base.base_task import BaseTask
 from utils.torch_jit_utils import *
+from tasks.hand_base.change_obj_attribute import Obj_attribute
 
 
 class TwoHandArmsPoint2Point(BaseTask):
     def __init__(self, cfg, sim_params, physics_engine, device_type, device_id, headless):
+        self.cfg = cfg
+
         self.num_arm_dofs = 6
         self.num_finger_dofs = 4
         self.num_hand_fingertips = 4
@@ -24,7 +27,6 @@ class TwoHandArmsPoint2Point(BaseTask):
         self.num_arms = self.cfg["env"]["numArms"]
         assert self.num_arms == 2, f"Only two arms supported, got {self.num_arms}"
 
-        self.cfg = cfg
         self.sim_params = sim_params
         self.physics_engine = physics_engine
         self.clamp_abs_observations: float = self.cfg["env"]["clampAbsObservations"]
@@ -56,7 +58,6 @@ class TwoHandArmsPoint2Point(BaseTask):
 
         self.max_episode_length = self.cfg["env"]["episodeLength"]
         self.reset_time = self.cfg["env"].get("resetTime", -1.0)
-        self.print_success_stat = self.cfg["env"]["printNumSuccesses"]
         self.max_consecutive_successes = self.cfg["env"]["maxConsecutiveSuccesses"]
         self.success_steps: int = self.cfg["env"]["successSteps"]
 
@@ -161,7 +162,7 @@ class TwoHandArmsPoint2Point(BaseTask):
         self.cfg["device_id"] = device_id
         self.cfg["headless"] = headless
 
-        super().__init__(cfg=self.cfg, is_meta=True)
+        super().__init__(cfg=self.cfg, is_meta=False)
 
         if self.viewer is not None:
             cam_pos = gymapi.Vec3(0.0, 1.8, 2.0)
@@ -260,7 +261,7 @@ class TwoHandArmsPoint2Point(BaseTask):
         lower = gymapi.Vec3(-spacing, -spacing, 0.0)
         upper = gymapi.Vec3(spacing, spacing, spacing)
 
-        asset_root = "../../assets"
+        asset_root = "../assets"
 
         asset_options = gymapi.AssetOptions()
         asset_options.fix_base_link = True
@@ -306,6 +307,7 @@ class TwoHandArmsPoint2Point(BaseTask):
                 arm_pose.r = gymapi.Quat.from_axis_angle(gymapi.Vec3(0, 0, 1), math.pi)
 
         # set objects
+        self.object_attribute = Obj_attribute(num_envs=self.num_envs)
         object_assets = []
         object_asset_options = gymapi.AssetOptions()
         for i in range(self.num_asset):
@@ -528,7 +530,7 @@ class TwoHandArmsPoint2Point(BaseTask):
         self.rew_buf[:] = reward
         self.reset_buf[:] = resets
 
-        self.extras["successes"] = self.prev_episode_successes.mean()
+        self.extras["successes"] = self.prev_episode_successes # .mean()
         rewards = [
             (fingertip_delta_rew, "fingertip_delta_rew"),
             (lifting_rew, "lifting_rew"),
@@ -543,8 +545,8 @@ class TwoHandArmsPoint2Point(BaseTask):
         for rew_value, rew_name in rewards:
             self.rewards_episode[rew_name] += rew_value
             episode_cumulative[rew_name] = rew_value
-        self.extras["rewards_episode"] = self.rewards_episode
-        self.extras["episode_cumulative"] = episode_cumulative
+        # self.extras["rewards_episode"] = self.rewards_episode
+        # self.extras["episode_cumulative"] = episode_cumulative
 
     def compute_observations(self) -> Tuple[Tensor, int]:
         self.gym.refresh_dof_state_tensor(self.sim)
@@ -591,8 +593,9 @@ class TwoHandArmsPoint2Point(BaseTask):
         self.last_keypoints_rel_goal = self.last_object_pos[:, 0:3].view(self.num_envs, -1, 3) - self.goal_pos
 
         palm_center_repeat = self.palm_center_pos.unsqueeze(2).repeat(1, 1, 1, 1)
-        obj_kp_pos_repeat = self.object_pos.unsqueeze(1).repeat(1, self.num_arms, 1, 1)
-        goal_kp_pos_repeat = self.goal_pos.unsqueeze(1).repeat(1, self.num_arms, 1, 1)
+        obj_kp_pos_repeat = self.object_pos.unsqueeze(1).repeat(1, self.num_arms, 1, 1).view(self.num_envs, self.num_arms, 1, 3)
+        goal_kp_pos_repeat = self.goal_pos.unsqueeze(1).repeat(1, self.num_arms, 1, 1).view(self.num_envs, self.num_arms, 1, 3)
+        print(self.object_pos.shape, obj_kp_pos_repeat.shape, palm_center_repeat.shape)
         self.keypoints_rel_palm = obj_kp_pos_repeat - palm_center_repeat
         self.keypoints_rel_palm = self.keypoints_rel_palm.view(self.num_envs, self.num_arms, 3)
         self.goal_kp_rel_palm = goal_kp_pos_repeat - palm_center_repeat
