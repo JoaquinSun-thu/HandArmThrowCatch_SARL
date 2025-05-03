@@ -9,23 +9,24 @@ import math
 from typing import Tuple
 from isaacgym import gymapi, gymtorch
 from torch import Tensor
-from isaacgymenvs.tasks.base.vec_task import VecTask
+from tasks.hand_arm_base.base_task import BaseTask
 from utils.torch_jit_utils import *
 
 
-class TwoHandArmsPoint2Point(VecTask):
+class TwoHandArmsPoint2Point(BaseTask):
     def __init__(self, cfg, sim_params, physics_engine, device_type, device_id, headless):
         self.num_arm_dofs = 6
         self.num_finger_dofs = 4
         self.num_hand_fingertips = 4
         self.num_hand_dofs = self.num_finger_dofs * self.num_hand_fingertips
         self.num_hand_arm_dofs = self.num_hand_dofs + self.num_arm_dofs
-        self.hand_arm_asset_file: str = self.cfg["env"]["asset"]["kukaAllegro"]
+        self.hand_arm_asset_file: str = self.cfg["env"]["asset"]["hand_arm_asset"]
         self.num_arms = self.cfg["env"]["numArms"]
         assert self.num_arms == 2, f"Only two arms supported, got {self.num_arms}"
 
         self.cfg = cfg
         self.sim_params = sim_params
+        self.physics_engine = physics_engine
         self.clamp_abs_observations: float = self.cfg["env"]["clampAbsObservations"]
         self.num_hand_arm_actions = self.num_hand_arm_dofs * self.num_arms
         self.randomize = self.cfg["task"]["randomize"]
@@ -45,10 +46,10 @@ class TwoHandArmsPoint2Point(VecTask):
         self.reset_position_noise_y = self.cfg["env"]["resetPositionNoiseY"]
         self.reset_position_noise_z = self.cfg["env"]["resetPositionNoiseZ"]
         self.reset_rotation_noise = self.cfg["env"]["resetRotationNoise"]
+        self.reset_dof_pos_noise = self.cfg["env"]["resetDofPosRandomInterval"]
         self.reset_dof_vel_noise = self.cfg["env"]["resetDofVelRandomInterval"]
 
-        self.initial_tolerance = self.cfg["env"]["successTolerance"]
-        self.success_tolerance = self.initial_tolerance
+        self.success_tolerance = self.cfg["env"]["successTolerance"]
         self.use_relative_control = self.cfg["env"]["useRelativeControl"]
         self.act_moving_average = self.cfg["env"]["actionsMovingAverage"]
         self.debug_viz = self.cfg["env"]["enableDebugVis"]
@@ -725,7 +726,7 @@ class TwoHandArmsPoint2Point(VecTask):
 
         rand_delta = delta_min + (delta_max - delta_min) * rand_dof_floats
 
-        allegro_pos = self.hand_arm_default_dof_pos + self.pos_noise_coeff * rand_delta
+        allegro_pos = self.hand_arm_default_dof_pos + self.reset_dof_pos_noise * rand_delta
 
         self.hand_arm_dof_pos[env_ids, ...] = allegro_pos
         self.prev_targets[env_ids, ...] = allegro_pos

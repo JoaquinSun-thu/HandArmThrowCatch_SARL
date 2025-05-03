@@ -1,0 +1,1 @@
+controller_joint_names: ['', 'mcp_joint1', 'pip_joint1', 'dip_joint1', 'fingertip_joint1', 'mcp_joint2', 'pip_joint2', 'dip_joint2', 'fingertip_joint2', 'mpc_joint3', 'pip_joint3', 'dip_joint3', 'fingertip_joint3', 'pip_joint4', 'thumb_pip_joint', 'thumb_dip_joint', 'thumb_fingertip_joint', ]

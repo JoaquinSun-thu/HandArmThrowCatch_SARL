@@ -1,0 +1,1381 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="thubot1">
+
+
+  <link name="iiwa7_link_0">
+    <inertial>
+      <origin
+        xyz="-0.0174205581189087 0.0118841867371313 0.154947000770574" 
+        rpy="0 0 0" />
+      <mass
+        value="52.467827585255" />
+      <inertia
+        ixx="0.379671525908869"
+        ixy="-0.00215707368254018"
+        ixz="-0.00562783500623309"
+        iyy="0.714259639895206"
+        iyz="-0.000208962218248609"
+        izz="0.8499070652385" />
+    </inertial>
+    <!-- 
+      ixx="0.379671525908869"
+      ixy="-0.00215707368254018"
+      ixz="-0.00562783500623309"
+      iyy="0.714259639895206"
+      iyz="-0.000208962218248609"
+      izz="0.8499070652385" />
+    -->
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="-1.57 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.25 -0.25 -0.06"
+        rpy="1.507 0 3.1415926" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/base_link_collision.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="car_wheel_left_link">
+    <inertial>
+      <origin
+        xyz="-0.00054928823116606 0.000105913900703788 -0.00599337263640198"
+        rpy="0 0 0" />
+      <mass
+        value="0.285277898819827" />
+      <inertia
+        ixx="6.59852199083716E-05"
+        ixy="-6.00722207531335E-10"
+        ixz="-1.28572342414589E-9"
+        iyy="6.60082070729698E-05"
+        iyz="4.18065938760799E-11"
+        izz="1.27269366305604E-04" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="-1.57 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/wheel_left_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/wheel_left_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="car_wheel_left_joint" type="fixed">
+    <parent link="iiwa7_link_0" />
+    <child link="car_wheel_left_link" />
+    <origin xyz="0 0.261 0" rpy="-1.5708 0 0" />
+    <axis xyz="0 0 1" />
+    <limit effort="28" velocity="18"/>
+    <dynamics damping="5.5" friction="0.025"/>
+  </joint>
+  <link name="car_wheel_right_link">
+    <inertial>
+      <origin
+        xyz="0.000549288231166062 0.000105913900703788 0.00599337263640198"
+        rpy="0 0 0" />
+      <mass
+        value="0.285277898819827" />
+      <inertia
+        ixx="6.59852199083716E-05"
+        ixy="6.00722207531355E-10"
+        ixz="-1.28572342414597E-9"
+        iyy="6.60082070729698E-05"
+        iyz="-4.18065938760452E-11"
+        izz="1.27269366305604E-04" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="-1.57 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/wheel_right_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/wheel_right_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="car_wheel_right_joint" type="fixed">
+    <parent link="iiwa7_link_0" />
+    <child link="car_wheel_right_link" />
+    <origin
+      xyz="0 -0.261 0"
+      rpy="-1.5708 0 0" />
+    <axis xyz="0 0 1" />
+    <limit effort="28" velocity="18"/>
+    <dynamics damping="5.5" friction="0.025"/>
+  </joint>
+
+  
+  <!-- <link
+    name="imu_link">
+    <inertial>
+      <origin
+        xyz="0.000792082858284526 1.38777878078145E-17 -0.012670204993692"
+        rpy="0 0 1.5708" />
+      <mass
+        value="0.0468512388980384" />
+      <inertia
+        ixx="8.11807645296422E-06"
+        ixy="-3.95404361424383E-21"
+        ixz="-1.02754012116106E-08"
+        iyy="1.1732532946275E-05"
+        iyz="-4.70553831773323E-21"
+        izz="1.50539519804819E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 1.5708" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/imu_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 1.5708" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/imu_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="imu_joint"
+    type="fixed">
+    <origin
+      xyz="-0.132 0.001 0.257"
+      rpy="0 0 -1.5708" />
+    <parent
+      link="base_link" />
+    <child
+      link="imu_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="base_scan">
+    <inertial>
+      <origin
+        xyz="-0.0792700269732225 -0.000502782516134966 -0.0221945303898931"
+        rpy="0 0 3.1415926" />
+      <mass
+        value="0.000292612751414373" />
+      <inertia
+        ixx="4.92906410371702E-09"
+        ixy="-1.77494869219624E-14"
+        ixz="1.01452239690971E-10"
+        iyy="2.40304678421701E-09"
+        iyz="-2.22399477126053E-15"
+        izz="5.79098388231232E-09" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 3.1415926" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/base_scan.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.498039215686275 0.498039215686275 0.498039215686275 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 3.1415926" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/base_scan.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="scan_joint"
+    type="fixed">
+    <origin
+      xyz="0.18 0 0.36849"
+      rpy="0 0 -3.1415926" />
+    <parent
+      link="base_link" />
+    <child
+      link="base_scan" />
+    <axis
+      xyz="0 0 0" />
+  </joint> -->
+
+  <link
+    name="shoulder_Link">
+    <inertial>
+      <origin
+        xyz="0.00215579656064623 0.0675269492548249 0.000166380479814213"
+        rpy="0 0 0" />
+      <mass
+        value="2.37326151468102" />
+      <inertia
+        ixx="0.00464437636424801"
+        ixy="3.37752841443834E-06"
+        ixz="-6.35167995342536E-06"
+        iyy="0.00257740285163467"
+        iyz="2.76302522141466E-07"
+        izz="0.00472586337172682" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/shoulder_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/shoulder_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j1"
+    type="revolute">
+    <!-- <origin
+      xyz="0 0 0.414"
+      rpy="1.5708 0 1.6475096" /> -->
+    <origin
+      xyz="0 0 0.414"
+      rpy="1.5708 0 -3.8503" />
+    <!-- <origin
+      xyz="0 0 0.074"
+      rpy="1.5708 0 0.076717" /> -->
+    <parent
+      link="iiwa7_link_0" />
+    <child
+      link="shoulder_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-3.0543261"
+      upper="3.0543261"
+      effort="64"
+      velocity="3.15" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="3.0543261"
+      soft_lower_limit="-3.0543261"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <link
+    name="upperarm_Link">
+    <inertial>
+      <origin
+        xyz="0.14052615364316 3.19832122998853E-06 -0.0673220294744213"
+        rpy="0 0 0" />
+      <mass
+        value="5.20488445581566" />
+      <inertia
+        ixx="0.0100877805389267"
+        ixy="-1.86156773781519E-06"
+        ixz="7.99549951803734E-16"
+        iyy="0.0114295275122961"
+        iyz="-4.02196283458795E-16"
+        izz="0.0071309461346971" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0.13"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/upperarm_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/upperarm_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j2"
+    type="revolute">
+    <origin
+      xyz="0.048656 0.0652 0.0037401"
+      rpy="3.141593 -1.647517 0" /> 
+    <parent
+      link="shoulder_Link" />
+    <child
+      link="upperarm_Link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4.6251"
+      upper="1.4835"
+      effort="64"
+      velocity="3.15" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="1.4835"
+      soft_lower_limit="-4.6251"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <link
+    name="forearm_Link">
+    <inertial>
+      <origin
+        xyz="0.192635357876029 0.0487629311118559 -4.94516124512836E-06"
+        rpy="0 0 0" />
+      <mass
+        value="2.36119902745376" />
+      <inertia
+        ixx="0.0035452659318639"
+        ixy="-7.3938698701374E-05"
+        ixz="7.22720216440109E-07"
+        iyy="0.00303455488056437"
+        iyz="-2.92335000076181E-07"
+        izz="0.00417679573122483" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0.0025 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/forearm_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/forearm_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j3"
+    type="revolute">
+    <origin
+      xyz="0.28 0 0"
+      rpy="1.5708 0 0" />
+    <parent
+      link="upperarm_Link" />
+    <child
+      link="forearm_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-2.8274"
+      upper="2.8274"
+      effort="64"
+      velocity="3.15" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="2.8274"
+      soft_lower_limit="-2.8274"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <link
+    name="wrist1_Link">
+    <inertial>
+      <origin
+        xyz="-0.0454134679338634 0.00172297187615156 4.23850043613353E-07"
+        rpy="0 0 0" />
+      <mass
+        value="1.74643097684016" />
+      <inertia
+        ixx="0.00262730745088668"
+        ixy="1.0106539916888E-05"
+        ixz="-3.62880005254338E-08"
+        iyy="0.00158503705125863"
+        iyz="1.43437921244792E-08"
+        izz="0.00273363370089196" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0.106 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/wrist1_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/wrist1_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j4"
+    type="revolute">
+    <origin
+      xyz="0.24001 -0.004399 0"
+      rpy="1.5708 0 1.5708" />
+    <parent
+      link="forearm_Link" />
+    <child
+      link="wrist1_Link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-4.6251"
+      upper="1.4835"
+      effort="32"
+      velocity="3.14" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="1.4835"
+      soft_lower_limit="-4.6251"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <link
+    name="wrist2_Link">
+    <inertial>
+      <origin
+        xyz="-0.0454134586122821 0.00172297186091633 4.35135087973705E-07"
+        rpy="0 0 0" />
+      <mass
+        value="1.74643097580082" />
+      <inertia
+        ixx="0.00262730745010995"
+        ixy="1.01065424165879E-05"
+        ixz="-3.62775265607763E-08"
+        iyy="0.00158503704914344"
+        iyz="1.44762939343378E-08"
+        izz="0.00273363369934455" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/wrist2_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/wrist2_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j5"
+    type="revolute">
+    <origin
+      xyz="0.057 -0.15 0"
+      rpy="3.141593 0 -1.5708" />
+    <parent
+      link="wrist1_Link" />
+    <child
+      link="wrist2_Link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-3.0543"
+      upper="3.0543"
+      effort="32"
+      velocity="3.14" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="3.0543"
+      soft_lower_limit="-3.0543"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <link
+    name="wrist3_Link">
+    <inertial>
+      <origin
+        xyz="-2.38767308875232E-05 0.0229240957730459 7.5877926720147E-05"
+        rpy="0 0 0" />
+      <mass
+        value="1.05057803931133" />
+      <inertia
+        ixx="0.000555936779063335"
+        ixy="5.09768154107326E-07"
+        ixz="1.02477772503103E-06"
+        iyy="0.000831680492730721"
+        iyz="2.52800063915235E-08"
+        izz="0.000554791835939161" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/wrist3_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/wrist3_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j6"
+    type="revolute">
+    <origin
+      xyz="-0.048801 -0.0532 0"
+      rpy="3.1416 -0.5 0" />
+    <parent
+      link="wrist2_Link" />
+    <child
+      link="wrist3_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-3.0543"
+      upper="3.0543"
+      effort="32"
+      velocity="3.14" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="3.0543"
+      soft_lower_limit="-3.0543"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <!-- Removing this joint seems to help with some stability things -->
+ 
+   <link name="part_studio_link">
+    <inertial>
+      <mass value="0.05"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0"/> <!--  1.5707 -->
+      <geometry>
+        <!-- <mesh filename="package://franka_description/meshes/visual/Part Studio 1.obj"/> -->
+        <!-- <mesh filename="package://franka_description/meshes/visual/mount_v6.stl" scale="0.001 0.001 0.001"/> -->
+        <mesh filename="kuka_allegro_description/meshes/mounts/allegro_mount.obj"/>     
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0"/>
+      <geometry>
+        <!-- <mesh filename="package://franka_description/meshes/collision/Part Studio 1.obj"/> -->
+        <!-- <mesh filename="package://franka_description/meshes/collision/mount_v6.stl" scale="0.001 0.001 0.001"/> -->
+        <mesh filename="kuka_allegro_description/meshes/mounts/allegro_mount.obj"/>
+      </geometry>
+    
+        
+    </collision>
+  </link>
+
+  <joint name="part_studio_joint" type="fixed">
+    <!--
+    <parent link="panda_link8"/>
+    -->
+    <parent link="wrist3_Link"/>
+    <child link="part_studio_link"/>
+    <!-- <origin rpy="0 0 1.571" xyz="-0.02 0.0 0.107"/> -->
+    
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+   
+  </joint>
+
+  <!-- <link name="camera_link">
+    <inertial>
+      <mass value="0.05"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
+    </inertial>
+    <visual>
+      <origin rpy="-1.571 0 0"/>
+      <geometry>
+        <mesh filename="C:\Users\xiaodu\Desktop\urdf_all\franka_panda_allegro/meshes/visual/realsense-d405.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="-1.571 0 0"/>
+      <geometry>
+        <mesh filename="C:\Users\xiaodu\Desktop\urdf_all\franka_panda_allegro/meshes/collision/realsense-d405.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    
+        
+    </collision>
+  </link>
+
+  <joint name="camera_joint" type="fixed">
+    <parent link="part_studio_link"/>
+    <child link="camera_link"/>
+    <origin rpy="-0.5 0 3.141592" xyz="-0.03 -0.05 0.055"/>
+  </joint> -->
+
+  <joint name="panda_hand_joint" type="fixed">
+    <!--
+    <parent link="panda_link8"/>
+    -->
+    <parent link="part_studio_link"/>
+    <child link="plam"/>
+    <!-- <origin rpy="0.78 -1.57 -2.35619449" xyz="0.03 0.07 0.075"/> -->
+
+    <!-- <origin rpy="0 0 -1.57" xyz="-0.03 0.06 0.075"/> -->
+    <!-- <origin rpy="0 0 -1.57" xyz="-0.06 0.06 0.080"/> -->
+    <origin rpy="0 0 -1.57" xyz="-0.05 0.06 0.070"/>
+
+    <!-- <origin rpy="0 0 -0.785398163397" xyz="0 0 0"/> -->
+  </joint>
+
+  <link
+    name="plam">
+    <inertial>
+      <origin
+        xyz="-0.0076228 -0.053429 -0.061333"
+        rpy="0 0 0" />
+      <mass
+        value="0.500" />
+      <inertia
+        ixx="0.00050614"
+        ixy="-1.223E-05"
+        ixz="-4.065E-06"
+        iyy="0.00036176"
+        iyz="-6.2607E-05"
+        izz="0.00021575" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="-1.57 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dexhand_v1_3/meshes/plam.STL" />
+      </geometry>
+      <material
+        name="plam_material">
+        <color
+          rgba="0 0 0 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://dexhand_v1_3/meshes/plam.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="finger1">
+    <inertial>
+      <origin xyz="0.0018001 -0.00014839 7.7544e-05" rpy="0.0 0.0 0.0"/>
+      <mass value="0.036"/>
+      <inertia ixx="8.8106e-07" ixy="-2.8722e-09" ixz="-2.0448e-08" iyy="1.2063e-06" iyz="5.1285e-09" izz="1.7153e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/finger1.STL"/>
+      </geometry>
+      <material name="finger1_material">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/finger1.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="finger1_base" type="fixed">
+    <origin xyz="-0.0079354 -0.0014188 -0.00030677" rpy="1.5708 0.0 -9.7376e-05"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="plam"/>
+    <child link="finger1"/>
+  </joint>
+  <link name="mcp_link1">
+    <inertial>
+      <origin xyz="0.00011683 0.019109 0.016471" rpy="0.0 0.0 0.0"/>
+      <mass value="0.06"/>
+      <inertia ixx="5.1e-06" ixy="5.129e-09" ixz="2.8732e-09" iyy="4.9498e-06" iyz="1.91e-08" izz="6.4319e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/mcp_link1.STL"/>
+      </geometry>
+      <material name="mcp_link1_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/mcp_link1.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="mcp_joint1" type="revolute">
+    <origin xyz="-0.012657 0.025473 0.00015076" rpy="-1.5708 -1.5708 0.0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="finger1"/>
+    <child link="mcp_link1"/>
+    <limit effort="1.1" lower="-0.314" upper="2.23" velocity="4.9"/>
+  </joint>
+  <link name="pip_link1">
+    <inertial>
+      <origin xyz="-0.00062072 0.00041479 -0.015195" rpy="0.0 0.0 0.0"/>
+      <mass value="0.045"/>
+      <inertia ixx="1.8492e-06" ixy="-2.0448e-08" ixz="5.1279e-09" iyy="9.9241e-07" iyz="-2.9521e-09" izz="1.4426e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/pip_link1.STL"/>
+      </geometry>
+      <material name="pip_link1_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/pip_link1.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="pip_joint1" type="revolute">
+    <origin xyz="0.001317 0.010242 0.031635" rpy="-1.5708 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="mcp_link1"/>
+    <child link="pip_link1"/>
+    <limit effort="1.1" lower="-1.047" upper="1.047" velocity="4.9"/>
+  </joint>
+  <link name="dip_link1">
+    <inertial>
+      <origin xyz="-0.00049158 0.006606 0.011523" rpy="0.0 0.0 0.0"/>
+      <mass value="0.055"/>
+      <inertia ixx="2.7267e-06" ixy="-2.0449e-08" ixz="5.1308e-09" iyy="2.7878e-06" iyz="-4.139e-09" izz="3.1359e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/dip_link1.STL"/>
+      </geometry>
+      <material name="dip_link1_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/dip_link1.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dip_joint1" type="revolute">
+    <origin xyz="-0.00059544 -0.032505 -0.023523" rpy="1.57 0.0 0.0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="pip_link1"/>
+    <child link="dip_link1"/>
+    <limit effort="1.1" lower="-0.506" upper="1.885" velocity="4.9"/>
+  </joint>
+  <link name="fingertip_link1">
+    <inertial>
+      <origin xyz="-8.6492e-08 -0.002715 0.01845" rpy="0.0 0.0 0.0"/>
+      <mass value="0.02"/>
+      <inertia ixx="9.6403e-06" ixy="-1.0584e-11" ixz="-1.0175e-10" iyy="1.0112e-05" iyz="5.5855e-07" izz="7.699e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/fingertip_link1.STL"/>
+      </geometry>
+      <material name="fingertip_link1_material">
+        <color rgba="0.79216 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/fingertip_link1.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fingertip_joint1" type="revolute">
+    <origin xyz="-0.00060127 -0.0066508 0.043254" rpy="0.0 0.0 0.0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="dip_link1"/>
+    <child link="fingertip_link1"/>
+    <limit effort="1.1" lower="-0.336" upper="2.042" velocity="4.9"/>
+  </joint>
+  <link name="finger2">
+    <inertial>
+      <origin xyz="0.0018001 -0.00014839 7.7544e-05" rpy="0.0 0.0 0.0"/>
+      <mass value="0.036"/>
+      <inertia ixx="8.8106e-07" ixy="-2.8722e-09" ixz="-2.0448e-08" iyy="1.2063e-06" iyz="5.1285e-09" izz="1.7153e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/finger2.STL"/>
+      </geometry>
+      <material name="finger2_material">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/finger2.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="finger2_base" type="fixed">
+    <origin xyz="-0.00793 0.054181 -0.00030677" rpy="1.5708 0.0 -9.7376e-05"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="plam"/>
+    <child link="finger2"/>
+  </joint>
+  <link name="mcp_link2">
+    <inertial>
+      <origin xyz="0.00011683 0.019109 0.016471" rpy="0.0 0.0 0.0"/>
+      <mass value="0.06"/>
+      <inertia ixx="5.1e-06" ixy="5.129e-09" ixz="2.8732e-09" iyy="4.9499e-06" iyz="1.91e-08" izz="6.4319e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/mcp_link2.STL"/>
+      </geometry>
+      <material name="mcp_link2_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/mcp_link2.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="mcp_joint2" type="revolute">
+    <origin xyz="-0.012541 0.025102 0.00015077" rpy="-1.5708 -1.5708 0.0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="finger2"/>
+    <child link="mcp_link2"/>
+    <limit effort="1.1" lower="-0.314" upper="2.33" velocity="4.9"/>
+  </joint>
+  <link name="pip_link2">
+    <inertial>
+      <origin xyz="-0.00062072 0.00041479 -0.015195" rpy="0.0 0.0 0.0"/>
+      <mass value="0.045"/>
+      <inertia ixx="1.8492e-06" ixy="-2.0448e-08" ixz="5.1279e-09" iyy="9.9241e-07" iyz="-2.9521e-09" izz="1.4426e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/pip_link2.STL"/>
+      </geometry>
+      <material name="pip_link2_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/pip_link2.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="pip_joint2" type="revolute">
+    <origin xyz="-0.00086083 0.010242 0.031716" rpy="-1.5708 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="mcp_link2"/>
+    <child link="pip_link2"/>
+    <limit effort="1.1" lower="-1.047" upper="1.047" velocity="4.9"/>
+  </joint>
+  <link name="dip_link2">
+    <inertial>
+      <origin xyz="-0.00049158 0.006606 0.011523" rpy="0.0 0.0 0.0"/>
+      <mass value="0.055"/>
+      <inertia ixx="2.7267e-06" ixy="-2.0448e-08" ixz="5.1307e-09" iyy="2.7878e-06" iyz="-4.1389e-09" izz="3.1359e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/dip_link2.STL"/>
+      </geometry>
+      <material name="dip_link2_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/dip_link2.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dip_joint2" type="revolute">
+    <origin xyz="-0.00059544 -0.031995 -0.025019" rpy="1.57 0.0 0.0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="pip_link2"/>
+    <child link="dip_link2"/>
+    <limit effort="1.1" lower="-0.506" upper="1.885" velocity="4.9"/>
+  </joint>
+  <link name="fingertip_link2">
+    <inertial>
+      <origin xyz="-1.3462e-07 -0.002715 0.01845" rpy="0.0 0.0 0.0"/>
+      <mass value="0.02"/>
+      <inertia ixx="9.6403e-06" ixy="-9.3507e-12" ixz="-7.5957e-11" iyy="1.0112e-05" iyz="5.5855e-07" izz="7.699e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/fingertip_link2.STL"/>
+      </geometry>
+      <material name="fingertip_link2_material">
+        <color rgba="0.79216 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/fingertip_link2.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fingertip_joint2" type="revolute">
+    <origin xyz="-0.00060127 0.0060196 0.043418" rpy="0.0 0.0 0.0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="dip_link2"/>
+    <child link="fingertip_link2"/>
+    <limit effort="1.1" lower="-0.336" upper="2.042" velocity="4.9"/>
+  </joint>
+  <link name="finger3">
+    <inertial>
+      <origin xyz="0.0018001 -0.00014839 7.7544e-05" rpy="0.0 0.0 0.0"/>
+      <mass value="0.036"/>
+      <inertia ixx="8.8106e-07" ixy="-2.8722e-09" ixz="-2.0448e-08" iyy="1.2063e-06" iyz="5.1285e-09" izz="1.7153e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/finger3.STL"/>
+      </geometry>
+      <material name="finger3_material">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/finger3.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="finger3_base" type="fixed">
+    <origin xyz="-0.0079246 0.10978 -0.00030677" rpy="1.5708 0.0 -9.7376e-05"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="plam"/>
+    <child link="finger3"/>
+  </joint>
+  <link name="mcp_link3">
+    <inertial>
+      <origin xyz="0.00015354 0.014971 -0.0030744" rpy="0.0 0.0 0.0"/>
+      <mass value="0.06"/>
+      <inertia ixx="5.1e-06" ixy="2.8729e-09" ixz="-5.129e-09" iyy="6.4319e-06" iyz="-1.91e-08" izz="4.9499e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/mcp_link3.STL"/>
+      </geometry>
+      <material name="mcp_link3_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="1.5708 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/mcp_link3.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="mcp_joint3" type="revolute">
+    <origin xyz="-0.012337 0.025575 0.00015077" rpy="-1.5708 -1.5708 0.0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="finger3"/>
+    <child link="mcp_link3"/>
+    <limit effort="1.1" lower="-0.314" upper="2.33" velocity="4.9"/>
+  </joint>
+  <link name="pip_link3">
+    <inertial>
+      <origin xyz="-0.00062072 0.00041479 -0.015195" rpy="0.0 0.0 0.0"/>
+      <mass value="0.045"/>
+      <inertia ixx="1.8492e-06" ixy="-2.0448e-08" ixz="5.1279e-09" iyy="9.9241e-07" iyz="-2.9522e-09" izz="1.4426e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/pip_link3.STL"/>
+      </geometry>
+      <material name="pip_link3_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/pip_link3.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="pip_joint3" type="revolute">
+    <origin xyz="0.001317 0.010242 0.031635" rpy="-1.5708 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="mcp_link3"/>
+    <child link="pip_link3"/>
+    <limit effort="1.1" lower="-1.047" upper="1.047" velocity="4.9"/>
+  </joint>
+  <link name="dip_link3">
+    <inertial>
+      <origin xyz="-0.00049158 0.006606 0.011523" rpy="0.0 0.0 0.0"/>
+      <mass value="0.055"/>
+      <inertia ixx="2.7267e-06" ixy="-2.0448e-08" ixz="5.1307e-09" iyy="2.7878e-06" iyz="-4.1388e-09" izz="3.1359e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/dip_link3.STL"/>
+      </geometry>
+      <material name="dip_link3_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/dip_link3.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dip_joint3" type="revolute">
+    <origin xyz="-0.00059544 -0.032878 -0.02218" rpy="1.57 0.0 0.0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="pip_link3"/>
+    <child link="dip_link3"/>
+    <limit effort="1.1" lower="-0.506" upper="1.885" velocity="4.9"/>
+  </joint>
+  <link name="fingertip_link3">
+    <inertial>
+      <origin xyz="-1.3079e-07 -0.002715 0.01845" rpy="0.0 0.0 0.0"/>
+      <mass value="0.02"/>
+      <inertia ixx="9.6403e-06" ixy="-8.837e-12" ixz="-8.0467e-11" iyy="1.0112e-05" iyz="5.5856e-07" izz="7.699e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/fingertip_link3.STL"/>
+      </geometry>
+      <material name="fingertip_link3_material">
+        <color rgba="0.79216 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/fingertip_link3.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fingertip_joint3" type="revolute">
+    <origin xyz="-0.00060127 0.0033197 0.043918" rpy="0.0 0.0 0.0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="dip_link3"/>
+    <child link="fingertip_link3"/>
+    <limit effort="1.1" lower="-0.336" upper="2.042" velocity="4.9"/>
+  </joint>
+  <link name="thumb_finger">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.036"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/thumb_finger.STL"/>
+      </geometry>
+      <material name="thubm_finger_material">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/thumb_finger.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="thumb_finger_base" type="fixed">
+    <origin xyz="-0.020732 0.025695 -0.058611" rpy="-3.1416 0.0 1.5707"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="plam"/>
+    <child link="thumb_finger"/>
+  </joint>
+  <link name="pip_link4">
+    <inertial>
+      <origin xyz="0.00078489 0.0011151 -0.015128" rpy="0.0 0.0 0.0"/>
+      <mass value="0.045"/>
+      <inertia ixx="1.7934e-06" ixy="-2.0448e-08" ixz="5.128e-09" iyy="9.6217e-07" iyz="-2.9519e-09" izz="1.4123e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/pip_link4.STL"/>
+      </geometry>
+      <material name="pip_link4_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/pip_link4.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="pip_joint4" type="revolute">
+    <origin xyz="-0.0075917 0.0081051 0.020149" rpy="-3.1416 0.0 -3.1237"/>
+    <axis xyz="0.0 0.0 -1.0"/>
+    <parent link="thumb_finger"/>
+    <child link="pip_link4"/>
+    <limit effort="1.1" lower="-0.47" upper="2.443" velocity="4.9"/>
+  </joint>
+  <link name="thumb_pip_link">
+    <inertial>
+      <origin xyz="-1.6224e-06 2.3281e-05 -0.0088232" rpy="0.0 0.0 0.0"/>
+      <mass value="0.015"/>
+      <inertia ixx="8.7751e-07" ixy="-2.512e-13" ixz="2.8408e-12" iyy="1.7954e-06" iyz="-1.3468e-09" izz="1.6933e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/thumb_pip_link.STL"/>
+      </geometry>
+      <material name="thumb_pip_link_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/thumb_pip_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="thumb_pip_joint" type="revolute">
+    <origin xyz="0.019903 -0.0080008 -0.016" rpy="1.5708 -1.5708 -1.5708"/>
+    <axis xyz="0.0 0.0 -1.0"/>
+    <parent link="pip_link4"/>
+    <child link="thumb_pip_link"/>
+    <limit effort="1.1" lower="-0.349" upper="2.094" velocity="4.9"/>
+  </joint>
+  <link name="thumb_dip_link">
+    <inertial>
+      <origin xyz="0.010078 -6.1654e-05 0.00022572" rpy="0.0 0.0 0.0"/>
+      <mass value="0.05"/>
+      <inertia ixx="2.8647e-06" ixy="-2.8755e-09" ixz="-2.1772e-08" iyy="2.2558e-06" iyz="5.1297e-09" izz="3.6553e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/thumb_dip_link.STL"/>
+      </geometry>
+      <material name="thumb_dip_link_material">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/thumb_dip_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="thumb_dip_joint" type="revolute">
+    <origin xyz="-0.00015077 -0.0016291 -0.032082" rpy="-1.5708 1.57 0."/>
+    <axis xyz="0.0 -1.0 0.0"/>
+    <parent link="thumb_pip_link"/>
+    <child link="thumb_dip_link"/>
+    <limit effort="1.1" lower="-1.2" upper="1.9" velocity="4.9"/>
+  </joint>
+  <link name="thumb_fingertip_link">
+    <inertial>
+      <origin xyz="0.031854 0.0022021 0.00066661" rpy="0.0 0.0 0.0"/>
+      <mass value="0.045"/>
+      <inertia ixx="7.0384e-06" ixy="-5.4869e-07" ixz="-2.0566e-08" iyy="9.4557e-06" iyz="5.1416e-09" izz="1.0421e-05"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/thumb_fingertip_link.STL"/>
+      </geometry>
+      <material name="thumb_fingertip_link_material">
+        <color rgba="0.79216 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://dexhand_v1_3/meshes/thumb_fingertip_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="thumb_fingertip_joint" type="revolute">
+    <origin xyz="0.057202 0.00030294 0.0026456" rpy="1.5708 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="thumb_dip_link"/>
+    <child link="thumb_fingertip_link"/>
+    <limit effort="1.1" lower="-1.34" upper="1.88" velocity="4.9"/>
+  </joint>
+</robot>
+

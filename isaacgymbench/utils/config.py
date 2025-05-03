@@ -118,8 +118,10 @@ def retrieve_cfg(args, use_rlg_config=False):
     # meta
     elif args.task == "ShadowHandMetaML1":
         return os.path.join(args.logdir,"ShadowHandMetaML1/{}/{}".format(args.algo, args.algo)), "cfg/{}/config.yaml".format(
-        args.algo), "cfg/ShadowHandCatchOverarm_allobj.yaml"  
-
+        args.algo), "cfg/ShadowHandCatchOverarm_allobj.yaml"
+    elif args.task == "TwoHandArmsPoint2Point":  
+        return os.path.join(args.logdir,"TwoHandArmsPoint2Point/{}/{}".format(args.algo, args.algo)), "cfg/{}/config.yaml".format(
+        args.algo), "cfg/hand_arm_throw_catch.yaml"
     # random object attribute
     elif args.task == "ShadowHandCatchOverarmRandom":
         return os.path.join(args.logdir,"ShadowHandCatchOverarmRandom/{}/{}".format(args.algo, args.algo)), "cfg/{}/config.yaml".format(

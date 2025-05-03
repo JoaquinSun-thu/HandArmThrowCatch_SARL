@@ -1,0 +1,1524 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="thubot1">
+
+  <link name="base_footprint"/>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0.0 0.0 0.080" rpy="0 0 0"/>
+  </joint>
+
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="-0.0174205581189087 0.0118841867371313 0.154947000770574"
+        rpy="0 0 0" />
+      <mass
+        value="42.467827585255" />
+      <inertia
+        ixx="0.379671525908869"
+        ixy="-0.00215707368254018"
+        ixz="-0.00562783500623309"
+        iyy="0.714259639895206"
+        iyz="-0.000208962218248609"
+        izz="0.8499070652385" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.25 -0.25 -0.06"
+        rpy="1.5708 0 3.1415926" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/base_link_collision.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="wheel_left_link">
+    <inertial>
+      <origin
+        xyz="-0.00054928823116606 0.000105913900703788 -0.00599337263640198"
+        rpy="0 0 0" />
+      <mass
+        value="0.0285277898819827" />
+      <inertia
+        ixx="6.59852199083716E-06"
+        ixy="-6.00722207531335E-11"
+        ixz="-1.28572342414589E-10"
+        iyy="6.60082070729698E-06"
+        iyz="4.18065938760799E-12"
+        izz="1.27269366305604E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/wheel_left_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/wheel_left_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_left_joint"
+    type="continuous">
+    <origin
+      xyz="0 0.261 0"
+      rpy="-1.5708 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="wheel_left_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="wheel_right_link">
+    <inertial>
+      <origin
+        xyz="0.000549288231166062 0.000105913900703788 0.00599337263640198"
+        rpy="0 0 0" />
+      <mass
+        value="0.0285277898819827" />
+      <inertia
+        ixx="6.59852199083716E-06"
+        ixy="6.00722207531355E-11"
+        ixz="-1.28572342414597E-10"
+        iyy="6.60082070729698E-06"
+        iyz="-4.18065938760452E-12"
+        izz="1.27269366305604E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/wheel_right_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/wheel_right_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_right_joint"
+    type="continuous">
+    <origin
+      xyz="0 -0.261 0"
+      rpy="-1.5708 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="wheel_right_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+
+  
+  <link
+    name="imu_link">
+    <inertial>
+      <origin
+        xyz="0.000792082858284526 1.38777878078145E-17 -0.012670204993692"
+        rpy="0 0 1.5708" />
+      <mass
+        value="0.0468512388980384" />
+      <inertia
+        ixx="8.11807645296422E-06"
+        ixy="-3.95404361424383E-21"
+        ixz="-1.02754012116106E-08"
+        iyy="1.1732532946275E-05"
+        iyz="-4.70553831773323E-21"
+        izz="1.50539519804819E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 1.5708" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/imu_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 1.5708" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/imu_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="imu_joint"
+    type="fixed">
+    <origin
+      xyz="-0.132 0.001 0.257"
+      rpy="0 0 -1.5708" />
+    <parent
+      link="base_link" />
+    <child
+      link="imu_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="base_scan">
+    <inertial>
+      <origin
+        xyz="-0.0792700269732225 -0.000502782516134966 -0.0221945303898931"
+        rpy="0 0 3.1415926" />
+      <mass
+        value="0.000292612751414373" />
+      <inertia
+        ixx="4.92906410371702E-09"
+        ixy="-1.77494869219624E-14"
+        ixz="1.01452239690971E-10"
+        iyy="2.40304678421701E-09"
+        iyz="-2.22399477126053E-15"
+        izz="5.79098388231232E-09" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 3.1415926" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/base_scan.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.498039215686275 0.498039215686275 0.498039215686275 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 3.1415926" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/base_scan.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="scan_joint"
+    type="fixed">
+    <origin
+      xyz="0.18 0 0.36849"
+      rpy="0 0 -3.1415926" />
+    <parent
+      link="base_link" />
+    <child
+      link="base_scan" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+
+  <link
+    name="shoulder_Link">
+    <inertial>
+      <origin
+        xyz="0.00215579656064623 0.0675269492548249 0.000166380479814213"
+        rpy="0 0 0" />
+      <mass
+        value="2.37326151468102" />
+      <inertia
+        ixx="0.00464437636424801"
+        ixy="3.37752841443834E-06"
+        ixz="-6.35167995342536E-06"
+        iyy="0.00257740285163467"
+        iyz="2.76302522141466E-07"
+        izz="0.00472586337172682" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/shoulder_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/shoulder_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j1"
+    type="revolute">
+    <!-- <origin
+      xyz="0 0 0.414"
+      rpy="1.5708 0 1.6475096" /> -->
+    <origin
+      xyz="0 0 0.414"
+      rpy="1.5708 0 -3.8503" />
+    <!-- <origin
+      xyz="0 0 0.074"
+      rpy="1.5708 0 0.076717" /> -->
+    <parent
+      link="base_link" />
+    <child
+      link="shoulder_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-3.0543261"
+      upper="3.0543261"
+      effort="150"
+      velocity="3.15" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="3.0543261"
+      soft_lower_limit="-3.0543261"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <link
+    name="upperarm_Link">
+    <inertial>
+      <origin
+        xyz="0.14052615364316 3.19832122998853E-06 -0.0673220294744213"
+        rpy="0 0 0" />
+      <mass
+        value="5.20488445581566" />
+      <inertia
+        ixx="0.0100877805389267"
+        ixy="-1.86156773781519E-06"
+        ixz="7.99549951803734E-16"
+        iyy="0.0114295275122961"
+        iyz="-4.02196283458795E-16"
+        izz="0.0071309461346971" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0.13"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/upperarm_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/upperarm_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j2"
+    type="revolute">
+    <origin
+      xyz="0.048656 0.0652 0.0037401"
+      rpy="3.141593 -1.647517 0" /> 
+    <parent
+      link="shoulder_Link" />
+    <child
+      link="upperarm_Link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-4.6251"
+      upper="1.4835"
+      effort="150"
+      velocity="3.15" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="1.4835"
+      soft_lower_limit="-4.6251"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <link
+    name="forearm_Link">
+    <inertial>
+      <origin
+        xyz="0.192635357876029 0.0487629311118559 -4.94516124512836E-06"
+        rpy="0 0 0" />
+      <mass
+        value="2.36119902745376" />
+      <inertia
+        ixx="0.0035452659318639"
+        ixy="-7.3938698701374E-05"
+        ixz="7.22720216440109E-07"
+        iyy="0.00303455488056437"
+        iyz="-2.92335000076181E-07"
+        izz="0.00417679573122483" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0.0025 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/forearm_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/forearm_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j3"
+    type="revolute">
+    <origin
+      xyz="0.28 0 0"
+      rpy="1.5708 0 0" />
+    <parent
+      link="upperarm_Link" />
+    <child
+      link="forearm_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-2.8274"
+      upper="2.8274"
+      effort="150"
+      velocity="3.15" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="2.8274"
+      soft_lower_limit="-2.8274"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <link
+    name="wrist1_Link">
+    <inertial>
+      <origin
+        xyz="-0.0454134679338634 0.00172297187615156 4.23850043613353E-07"
+        rpy="0 0 0" />
+      <mass
+        value="1.74643097684016" />
+      <inertia
+        ixx="0.00262730745088668"
+        ixy="1.0106539916888E-05"
+        ixz="-3.62880005254338E-08"
+        iyy="0.00158503705125863"
+        iyz="1.43437921244792E-08"
+        izz="0.00273363370089196" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0.106 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/wrist1_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/wrist1_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j4"
+    type="revolute">
+    <origin
+      xyz="0.24001 -0.004399 0"
+      rpy="1.5708 0 1.5708" />
+    <parent
+      link="forearm_Link" />
+    <child
+      link="wrist1_Link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-4.6251"
+      upper="1.4835"
+      effort="28"
+      velocity="3.2" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="1.4835"
+      soft_lower_limit="-4.6251"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <link
+    name="wrist2_Link">
+    <inertial>
+      <origin
+        xyz="-0.0454134586122821 0.00172297186091633 4.35135087973705E-07"
+        rpy="0 0 0" />
+      <mass
+        value="1.74643097580082" />
+      <inertia
+        ixx="0.00262730745010995"
+        ixy="1.01065424165879E-05"
+        ixz="-3.62775265607763E-08"
+        iyy="0.00158503704914344"
+        iyz="1.44762939343378E-08"
+        izz="0.00273363369934455" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/wrist2_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/wrist2_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j5"
+    type="revolute">
+    <origin
+      xyz="0.057 -0.15 0"
+      rpy="3.141593 0 -1.5708" />
+    <parent
+      link="wrist1_Link" />
+    <child
+      link="wrist2_Link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-3.0543"
+      upper="3.0543"
+      effort="28"
+      velocity="3.2" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="3.0543"
+      soft_lower_limit="-3.0543"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <link
+    name="wrist3_Link">
+    <inertial>
+      <origin
+        xyz="-2.38767308875232E-05 0.0229240957730459 7.5877926720147E-05"
+        rpy="0 0 0" />
+      <mass
+        value="1.05057803931133" />
+      <inertia
+        ixx="0.000555936779063335"
+        ixy="5.09768154107326E-07"
+        ixz="1.02477772503103E-06"
+        iyy="0.000831680492730721"
+        iyz="2.52800063915235E-08"
+        izz="0.000554791835939161" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/visual/wrist3_Link.DAE" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://thubot1_description/meshes/collision/wrist3_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j6"
+    type="revolute">
+    <origin
+      xyz="-0.048801 -0.0532 0"
+      rpy="3.1416 -0.5 0" />
+    <parent
+      link="wrist2_Link" />
+    <child
+      link="wrist3_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-3.0543"
+      upper="3.0543"
+      effort="28"
+      velocity="3.2" />
+    <calibration
+      rising="0"
+      falling="0" />
+    <dynamics
+      damping="0"
+      friction="0" />
+    <safety_controller
+      soft_upper_limit="3.0543"
+      soft_lower_limit="-3.0543"
+      k_position="100"
+      k_velocity="40" />
+  </joint>
+  <!-- Removing this joint seems to help with some stability things -->
+ 
+   <link name="part_studio_link">
+    <inertial>
+      <mass value="0.05"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0"/> <!--  1.5707 -->
+      <geometry>
+        <!-- <mesh filename="package://franka_description/meshes/visual/Part Studio 1.obj"/> -->
+        <!-- <mesh filename="package://franka_description/meshes/visual/mount_v6.stl" scale="0.001 0.001 0.001"/> -->
+        <mesh filename="kuka_allegro_description/meshes/mounts/allegro_mount.obj"/>     
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0"/>
+      <geometry>
+        <!-- <mesh filename="package://franka_description/meshes/collision/Part Studio 1.obj"/> -->
+        <!-- <mesh filename="package://franka_description/meshes/collision/mount_v6.stl" scale="0.001 0.001 0.001"/> -->
+        <mesh filename="kuka_allegro_description/meshes/mounts/allegro_mount.obj"/>
+      </geometry>
+    
+        
+    </collision>
+  </link>
+
+  <joint name="part_studio_joint" type="fixed">
+    <!--
+    <parent link="panda_link8"/>
+    -->
+    <parent link="wrist3_Link"/>
+    <child link="part_studio_link"/>
+    <!-- <origin rpy="0 0 1.571" xyz="-0.02 0.0 0.107"/> -->
+    
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+   
+  </joint>
+
+  <!-- <link name="camera_link">
+    <inertial>
+      <mass value="0.05"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
+    </inertial>
+    <visual>
+      <origin rpy="-1.571 0 0"/>
+      <geometry>
+        <mesh filename="C:\Users\xiaodu\Desktop\urdf_all\franka_panda_allegro/meshes/visual/realsense-d405.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="-1.571 0 0"/>
+      <geometry>
+        <mesh filename="C:\Users\xiaodu\Desktop\urdf_all\franka_panda_allegro/meshes/collision/realsense-d405.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    
+        
+    </collision>
+  </link>
+
+  <joint name="camera_joint" type="fixed">
+    <parent link="part_studio_link"/>
+    <child link="camera_link"/>
+    <origin rpy="-0.5 0 3.141592" xyz="-0.03 -0.05 0.055"/>
+  </joint> -->
+
+  <joint name="panda_hand_joint" type="fixed">
+    <!--
+    <parent link="panda_link8"/>
+    -->
+    <parent link="part_studio_link"/>
+    <child link="base_link_hand"/>
+    <origin rpy="0 -1.5707 -1.5707" xyz="0.00 0.12 0.025"/>
+    <!-- <origin rpy="0 0 -0.785398163397" xyz="0 0 0"/> -->
+  </joint>
+
+
+  <link name="base_link_hand">
+    <inertial>
+      <mass value="0.4154"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <!-- RIGHT -->
+        <mesh filename="../allegro2/meshes/base_link.STL"/>
+        <!-- LEFT -->
+        <!-- <mesh filename="../allegro2/meshes/base_link_left.STL"/> -->
+      </geometry>
+      <material name="black">
+        <color rgba="0.2 0.2 0.2 1"/>
+      </material>
+      <!-- RIGHT -->
+      <origin rpy="0 0 0" xyz="0 0 0 "/>
+      <!-- LEFT -->
+      <!-- <origin rpy="-1.5707963259 0 0" xyz="0 0 0 "/> -->
+    </visual>
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.038 0 -0.04"/>
+      <geometry>
+        <box size="0.015 0.085 0.03"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="-0.0000 0 -0.0"/>
+      <!-- <origin rpy="-1.5707963259 0 0" xyz="0 0 0 "/> -->
+      <geometry>
+        <!-- <box size="0.0408 0.1130 0.095"/> -->
+        <mesh filename="../allegro2/meshes/base_link.STL"/>
+            </geometry>
+    </collision>
+  </link>
+  <!-- ============================================================================= -->
+  <!-- FINGERS -->
+  <!-- RIGHT HAND due to which finger is number 0 -->
+  <!-- for LEFT HAND switch the sign of the **offset_origin_y** and **finger_angle_r** parameters-->
+  <link name="link_0.0">
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_0.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0164"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.0082"/>
+        
+    </collision>
+    <inertial>
+      <mass value="0.005"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="5.1458e-05" iyy="5.1458e-05" izz="6.125e-05" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+  <joint name="joint_0.0" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="0.35" lower="-0.47" upper="0.47" velocity="7"/>
+    <parent link="base_link_hand"/>
+    <child link="link_0.0"/>
+    <origin rpy="0.08726646255 0 0" xyz="0 -0.0435 -0.001542"/>
+    <dynamics friction="0.035"/>
+  </joint>
+  <link name="link_1.0">
+    <inertial>
+      <mass value="0.125164"/>
+      <origin xyz="0.027 0 0"/>
+      <inertia ixx="6.39979e-06" iyy="8.88687e-05" izz="9.13751e-05" ixy="-3.26531e-06" ixz="1.23963e-05"
+               iyz="2.07384e-05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_1.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.054"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.027"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_1.0" type="revolute">
+    <limit effort="0.35" lower="-0.196" upper="1.61" velocity="7"/>
+    <axis xyz="0 1 0"/>
+    <parent link="link_0.0"/>
+    <child link="link_1.0"/>
+    <origin xyz="0 0 0.0164"/>
+    <dynamics friction="0.035"/>
+  </joint>
+
+  <link name="link_2.0">
+    <inertial>
+      <mass value="0.131691"/>
+      <origin xyz="0.039 0 0"/>
+      <inertia ixx="7.04217e-05" iyy="3.95744e-05" izz="6.61125e-05" ixy="-9.64342e-05" ixz="5.8796e-05"
+               iyz="-3.62996e-05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_2.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0384"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.0192"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_2.0" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="0.35" lower="-0.174" upper="1.709" velocity="7"/>
+    <parent link="link_1.0"/>
+    <child link="link_2.0"/>
+    <origin xyz="0 0 0.054"/>
+    <dynamics friction="0.035"/>
+  </joint>
+
+  <link name="link_3.0">
+    <inertial>
+      <mass value="0.131691"/>
+      <origin xyz="0.039 0 0"/>
+      <inertia ixx="7.04217e-05" iyy="3.95744e-05" izz="6.61125e-05" ixy="-9.64342e-05" ixz="5.8796e-05"
+               iyz="-3.62996e-05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_3.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0267"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.01335"/>
+        
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0.01335"/>
+      <mass value="0.02"/>
+      <inertia ixx="1e-5" ixy="0.0" ixz="0.0" iyy="2e-5" iyz="0.0" izz="2e-5"/>
+    </inertial>
+  </link>
+  <joint name="joint_3.0" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="0.35" lower="-0.227" upper="1.618" velocity="7"/>
+    <parent link="link_2.0"/>
+    <child link="link_3.0"/>
+    <origin xyz="0 0 0.0384"/>
+    <dynamics friction="0.035"/>
+  </joint>
+  <link name="link_3.0_tip">
+    <!-- <visual>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.020"/>
+      <geometry>
+        <mesh filename="../allegro2/meshes/modified_tip.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.020"/>
+      <geometry>
+        <mesh filename="../allegro2/meshes/modified_tip.STL" scale="0.001 0.001 0.001"/>
+            </geometry>
+    
+        
+    </collision> -->
+    <visual>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.030"/> 
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_3.0_tip.STL"/>
+      </geometry>
+      <material name="white">
+        <color rgba=".9 .9 .9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.030"/>
+      <geometry>
+        <sphere radius="0.012"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.0168"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="9.68e-07" ixy="0" ixz="0" iyy="9.68e-07" iyz="0" izz="9.68e-07"/>
+    </inertial>  
+  </link>
+  <joint name="joint_3.0_tip" type="fixed">
+    <parent link="link_3.0"/>
+    <child link="link_3.0_tip"/>
+    <origin rpy="0 0 0" xyz="0 0 0.060"/>
+  </joint>
+
+        
+  <link name="link_4.0">
+    <inertial>
+      <mass value="0.005"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="5.1458e-05" iyy="5.1458e-05" izz="6.125e-05" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_0.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0164"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.0082"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_4.0" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="0.35" lower="-0.47" upper="0.47" velocity="7"/>
+    <parent link="base_link_hand"/>
+    <child link="link_4.0"/>
+    <origin rpy="0.0 0 0" xyz="0 0 0.0007"/>
+    <dynamics friction="0.035"/>
+  </joint>
+  <link name="link_5.0">
+    <inertial>
+      <mass value="0.125164"/>
+      <origin xyz="0.027 0 0"/>
+      <inertia ixx="6.39979e-06" iyy="8.88687e-05" izz="9.13751e-05" ixy="-3.26531e-06" ixz="1.23963e-05"
+               iyz="2.07384e-05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_1.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.054"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.027"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_5.0" type="revolute">
+    <limit effort="0.35" lower="-0.196" upper="1.61" velocity="7"/>
+    <axis xyz="0 1 0"/>
+    <parent link="link_4.0"/>
+    <child link="link_5.0"/>
+    <origin xyz="0 0 0.0164"/>
+    <dynamics friction="0.035"/>
+  </joint>
+
+  <link name="link_6.0">
+    <inertial>
+      <mass value="0.131691"/>
+      <origin xyz="0.039 0 0"/>
+      <inertia ixx="7.04217e-05" iyy="3.95744e-05" izz="6.61125e-05" ixy="-9.64342e-05" ixz="5.8796e-05"
+               iyz="-3.62996e-05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_2.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0384"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.0192"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_6.0" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="0.35" lower="-0.174" upper="1.709" velocity="7"/>
+    <parent link="link_5.0"/>
+    <child link="link_6.0"/>
+    <origin xyz="0 0 0.054"/>
+    <dynamics friction="0.035"/>
+  </joint>
+
+  <link name="link_7.0">
+    <inertial>
+      <mass value="0.131691"/>
+      <origin xyz="0.039 0 0"/>
+      <inertia ixx="7.04217e-05" iyy="3.95744e-05" izz="6.61125e-05" ixy="-9.64342e-05" ixz="5.8796e-05"
+               iyz="-3.62996e-05"/>
+    </inertial>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0.01335"/>
+      <mass value="0.02"/>
+      <inertia ixx="1e-5" ixy="0.0" ixz="0.0" iyy="2e-5" iyz="0.0" izz="2e-5"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_3.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0267"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.01335"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_7.0" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="0.35" lower="-0.227" upper="1.618" velocity="7"/>
+    <parent link="link_6.0"/>
+    <child link="link_7.0"/>
+    <origin xyz="0 0 0.0384"/>
+    <dynamics friction="0.035"/>
+  </joint>
+  <link name="link_7.0_tip">
+    <!-- <visual>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.020"/>
+      <geometry>
+        <mesh filename="../allegro2/meshes/modified_tip.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.020"/>
+      <geometry>
+        <mesh filename="../allegro2/meshes/modified_tip.STL" scale="0.001 0.001 0.001"/>
+            </geometry>
+    
+        
+    </collision> -->
+    <visual>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.030"/>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_3.0_tip.STL"/>
+      </geometry>
+      <material name="white">
+        <color rgba=".9 .9 .9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.030"/>
+      <geometry>
+        <sphere radius="0.012"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.0168"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="9.68e-07" ixy="0" ixz="0" iyy="9.68e-07" iyz="0" izz="9.68e-07"/>
+    </inertial>  
+  </link>
+  <joint name="joint_7.0_tip" type="fixed">
+    <parent link="link_7.0"/>
+    <child link="link_7.0_tip"/>
+    <origin rpy="0 0 0" xyz="0 0 0.060"/>
+  </joint>
+
+
+  <link name="link_8.0">
+    <inertial>
+      <mass value="0.005"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="5.1458e-05" iyy="5.1458e-05" izz="6.125e-05" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_0.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0164"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.0082"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_8.0" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="0.35" lower="-0.47" upper="0.47" velocity="7"/>
+    <parent link="base_link_hand"/>
+    <child link="link_8.0"/>
+    <origin rpy="-0.08726646255 0 0" xyz="0 0.0435 -0.001542"/>
+    <dynamics friction="0.035"/>
+  </joint>
+  <link name="link_9.0">
+    <inertial>
+      <mass value="0.125164"/>
+      <origin xyz="0.027 0 0"/>
+      <inertia ixx="6.39979e-06" iyy="8.88687e-05" izz="9.13751e-05" ixy="-3.26531e-06" ixz="1.23963e-05"
+               iyz="2.07384e-05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_1.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.054"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.027"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_9.0" type="revolute">
+    <limit effort="0.35" lower="-0.196" upper="1.61" velocity="7"/>
+    <axis xyz="0 1 0"/>
+    <parent link="link_8.0"/>
+    <child link="link_9.0"/>
+    <origin xyz="0 0 0.0164"/>
+    <dynamics friction="0.035"/>
+  </joint>
+
+
+  <link name="link_10.0">
+    <inertial>
+      <mass value="0.131691"/>
+      <origin xyz="0.039 0 0"/>
+      <inertia ixx="7.04217e-05" iyy="3.95744e-05" izz="6.61125e-05" ixy="-9.64342e-05" ixz="5.8796e-05"
+               iyz="-3.62996e-05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_2.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0384"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.0192"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_10.0" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="0.35" lower="-0.174" upper="1.709" velocity="7"/>
+    <parent link="link_9.0"/>
+    <child link="link_10.0"/>
+    <origin xyz="0 0 0.054"/>
+    <dynamics friction="0.035"/>
+  </joint>
+
+
+  <link name="link_11.0">
+    <inertial>
+      <mass value="0.131691"/>
+      <origin xyz="0.039 0 0"/>
+      <inertia ixx="7.04217e-05" iyy="3.95744e-05" izz="6.61125e-05" ixy="-9.64342e-05" ixz="5.8796e-05"
+               iyz="-3.62996e-05"/>
+    </inertial>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0.01335"/>
+      <mass value="0.02"/>
+      <inertia ixx="1e-5" ixy="0.0" ixz="0.0" iyy="2e-5" iyz="0.0" izz="2e-5"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_3.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0267"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.01335"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_11.0" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="0.35" lower="-0.227" upper="1.618" velocity="7"/>
+    <parent link="link_10.0"/>
+    <child link="link_11.0"/>
+    <origin xyz="0 0 0.0384"/>
+    <dynamics friction="0.035"/>
+  </joint>
+
+  <link name="link_11.0_tip">
+    <!-- <visual>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.020"/>
+      <geometry>
+        <mesh filename="../allegro2/meshes/modified_tip.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.020"/>
+      <geometry>
+        <mesh filename="../allegro2/meshes/modified_tip.STL" scale="0.001 0.001 0.001"/>
+            </geometry>
+    
+        
+    </collision> -->
+    <visual>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.030"/>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_3.0_tip.STL"/>
+      </geometry>
+      <material name="white">
+        <color rgba=".9 .9 .9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.030"/>
+      <geometry>
+        <sphere radius="0.012"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.0168"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="9.68e-07" ixy="0" ixz="0" iyy="9.68e-07" iyz="0" izz="9.68e-07"/>
+    </inertial>  
+  </link>
+  <joint name="joint_11.0_tip" type="fixed">
+    <parent link="link_11.0"/>
+    <child link="link_11.0_tip"/>
+    <origin rpy="0 0 0" xyz="0 0 0.060"/>
+  </joint>
+
+  <!-- THUMB -->
+  <link name="link_12.0">
+    <inertial>
+      <mass value="0.005"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="5.1458e-05" iyy="5.1458e-05" izz="6.125e-05" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <!-- RIGHT -->
+        <mesh filename="../allegro2/meshes/link_12.0_right.STL"/>
+        <!-- LEFT -->
+        <!-- <mesh filename="../allegro2/meshes/link_12.0_left.STL" /> -->
+      </geometry>
+      <material name="black"/>
+      <origin rpy="0.0 0 0" xyz="0 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <!-- <box size="0.0358 0.034 0.0455"/> -->
+        <mesh filename="../allegro2/meshes/link_12.0_right.STL" scale="0.99 0.99 0.99"/>
+      </geometry>
+      <!-- RIGHT -->
+      <origin rpy="0 0 0" xyz="-0.0 0.00 0.0"/>
+      <!-- LEFT -->
+      <!-- <origin rpy="3.1415926518 0 0" xyz="0 0 0"/> -->
+        
+    </collision>
+  </link>
+  <joint name="joint_12.0" type="revolute">
+    <axis xyz="-1 0 0"/>
+    <limit effort="0.35" lower="0.263" upper="1.396" velocity="7"/>
+    <parent link="base_link_hand"/>
+    <child link="link_12.0"/>
+    <!-- RIGHT -->
+    <origin rpy="0 -1.65806278845 -1.5707963259" xyz="-0.0182 0.019333 -0.045987"/>
+    <!-- LEFT -->
+    <!-- <origin rpy="0 -1.65806278845 1.5707963259" xyz="-0.0182 -0.019333 -0.045987"/> -->
+    <dynamics friction="0.035"/>
+  </joint>
+  <link name="link_13.0">
+    <inertial>
+      <mass value="0.125164"/>
+      <origin xyz="0.027 0 0"/>
+      <inertia ixx="6.39979e-06" iyy="8.88687e-05" izz="9.13751e-05" ixy="-3.26531e-06" ixz="1.23963e-05"
+               iyz="2.07384e-05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_13.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0177"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.00885"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_13.0" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="0.35" lower="-0.105" upper="1.163" velocity="7"/>
+    <parent link="link_12.0"/>
+    <child link="link_13.0"/>
+    <!-- RIGHT -->
+    <origin xyz="-0.027 0.005 0.0399"/>
+    <!-- LEFT -->
+    <!-- <origin xyz="-0.027 -0.005 0.0399"/> -->
+    <dynamics friction="0.035"/>
+  </joint>
+  <link name="link_14.0">
+    <inertial>
+      <mass value="0.131691"/>
+      <origin xyz="0.039 0 0"/>
+      <inertia ixx="7.04217e-05" iyy="3.95744e-05" izz="6.61125e-05" ixy="-9.64342e-05" ixz="5.8796e-05"
+               iyz="-3.62996e-05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_14.0.STL"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0514"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.0257"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_14.0" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="0.35" lower="-0.189" upper="1.644" velocity="7"/>
+    <parent link="link_13.0"/>
+    <child link="link_14.0"/>
+    <origin xyz="0 0 0.0177"/>
+    <dynamics friction="0.035"/>
+  </joint>
+
+
+  <link name="link_15.0">
+    <inertial>
+      <mass value="0.131691"/>
+      <origin xyz="0.039 0 0"/>
+      <inertia ixx="7.04217e-05" iyy="3.95744e-05" izz="6.61125e-05" ixy="-9.64342e-05" ixz="5.8796e-05"
+               iyz="-3.62996e-05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_15.0.STL"/>
+      </geometry>
+      <material name="black">
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0196 0.0275 0.0423"/>
+      </geometry>
+        
+      <origin rpy="0 0 0" xyz="0 0 0.02115"/>
+        
+    </collision>
+  </link>
+  <joint name="joint_15.0" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="0.35" lower="-0.162" upper="1.719" velocity="7"/>
+    <parent link="link_14.0"/>
+    <child link="link_15.0"/>
+    <origin xyz="0 0 0.0514"/>
+    <dynamics friction="0.035"/>
+  </joint>
+
+
+  <link name="link_15.0_tip">
+    <!-- <visual>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.020"/>
+      <geometry>
+        <mesh filename="../allegro2/meshes/modified_tip.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision> -->
+      <!-- <origin rpy="0 0 0" xyz="-0.002 0 -0.024"/>
+      <geometry>
+        <box size="0.014 0.014 0.04"/>
+      </geometry> -->
+      <!-- <origin rpy="0 0 1.570795" xyz="0 0 -0.020"/>
+      <geometry>
+        <mesh filename="../allegro2/meshes/modified_tip.STL" scale="0.001 0.001 0.001"/>
+            </geometry>
+    
+        
+    </collision> -->
+    <visual>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.030"/>
+      <geometry>
+        <mesh filename="../allegro2/meshes/link_15.0_tip.STL"/>
+      </geometry>
+      <material name="white">
+        <color rgba=".9 .9 .9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 1.570795" xyz="0 0 -0.030"/>
+      <geometry>
+        <sphere radius="0.012"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.0168"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="9.68e-07" ixy="0" ixz="0" iyy="9.68e-07" iyz="0" izz="9.68e-07"/>
+    </inertial>  
+  </link>
+  <joint name="joint_15.0_tip" type="fixed">
+    <parent link="link_15.0"/>
+    <child link="link_15.0_tip"/>
+    <origin rpy="0 0 0" xyz="0 0 0.075"/>
+  </joint>
+
+  <!-- Palm fsr sensor -->
+  <link name="palm">
+  </link>
+  <joint name="palm_joint" type="fixed">
+    <parent link="base_link_hand"/>
+    <child link="palm"/>
+    <origin rpy="0.00000 -0.00000 0.00000" xyz="0 0 -0.065"/>
+  </joint>
+  <link name="palm_center">
+  </link>
+  <joint name="palm_center_joint" type="fixed">
+    <parent link="base_link_hand"/>
+    <child link="palm_center"/>
+    <origin rpy="0.00000 -0.00000 0.00000" xyz="0 0 -0.03"/>
+  </joint>
+</robot>
+
