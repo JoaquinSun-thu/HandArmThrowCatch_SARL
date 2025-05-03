@@ -9,7 +9,6 @@ import math
 from typing import Tuple
 from isaacgym import gymapi, gymtorch
 from torch import Tensor
-from isaacgymenvs.tasks.point2point.two_hand_arms.hand_arm_utils import DofParameters, populate_dof_properties
 from isaacgymenvs.tasks.base.vec_task import VecTask
 from utils.torch_jit_utils import *
 
@@ -27,7 +26,6 @@ class TwoHandArmsPoint2Point(VecTask):
 
         self.cfg = cfg
         self.sim_params = sim_params
-        self.dof_params: DofParameters = DofParameters.from_cfg(self.cfg)
         self.clamp_abs_observations: float = self.cfg["env"]["clampAbsObservations"]
         self.num_hand_arm_actions = self.num_hand_arm_dofs * self.num_arms
         self.randomize = self.cfg["task"]["randomize"]
@@ -379,7 +377,6 @@ class TwoHandArmsPoint2Point(VecTask):
             # add arms
             for arm_idx in range(self.num_arms):
                 hand_arm = self.gym.create_actor(env_ptr, hand_arm_asset, arm_poses[arm_idx], f"arm{arm_idx}", i, -1, 0)
-                populate_dof_properties(hand_arm_dof_props, self.dof_params, self.num_arm_dofs, self.num_hand_dofs)
                 self.gym.set_actor_dof_properties(env_ptr, hand_arm, hand_arm_dof_props)
                 hand_arm_idx = self.gym.get_actor_index(env_ptr, hand_arm, gymapi.DOMAIN_SIM)
                 self.hand_arm_indices[i, arm_idx] = hand_arm_idx
