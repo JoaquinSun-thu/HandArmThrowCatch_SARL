@@ -33,7 +33,7 @@ from tasks.shadow_hand_catch_overarm_random import ShadowHandCatchOverarmRandom
 from tasks.shadow_hand_meta_ml1_random import ShadowHandMetaML1Random
 from tasks.two_hand_arms_point2point import TwoHandArmsPoint2Point
 
-from tasks.hand_base.vec_task import VecTaskCPU, VecTaskGPU, VecTaskPython, VecTaskPythonArm
+from tasks.hand_arm_base.vec_task import VecTaskCPU, VecTaskGPU, VecTaskPython
 from tasks.hand_base.multi_vec_task import MultiVecTaskPython, SingleVecTaskPythonArm
 
 from utils.config import warn_task_name

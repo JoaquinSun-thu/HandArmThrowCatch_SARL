@@ -483,7 +483,7 @@ class TwoHandArmsPoint2Point(BaseTask):
             (catch_arm_palm_center_pos[:, 0] < self.catch_arm_x_right_board) |
             (catch_arm_palm_center_pos[:, 2] > self.catch_arm_z_up_board) |
             (catch_arm_palm_center_pos[:, 2] < self.catch_arm_z_down_board) |
-            (catch_arm_palm_center_pos[:, 1] < self.catch_arm_y_board) |
+            (catch_arm_palm_center_pos[:, 1] < -self.catch_arm_y_board) |
             (catch_arm_palm_center_pos[:, 1] > self.catch_arm_y_board)
         )
         
@@ -545,7 +545,7 @@ class TwoHandArmsPoint2Point(BaseTask):
         for rew_value, rew_name in rewards:
             self.rewards_episode[rew_name] += rew_value
             episode_cumulative[rew_name] = rew_value
-        # self.extras["rewards_episode"] = self.rewards_episode
+        self.extras["rewards_episode"] = self.rewards_episode
         # self.extras["episode_cumulative"] = episode_cumulative
 
     def compute_observations(self) -> Tuple[Tensor, int]:
@@ -595,7 +595,6 @@ class TwoHandArmsPoint2Point(BaseTask):
         palm_center_repeat = self.palm_center_pos.unsqueeze(2).repeat(1, 1, 1, 1)
         obj_kp_pos_repeat = self.object_pos.unsqueeze(1).repeat(1, self.num_arms, 1, 1).view(self.num_envs, self.num_arms, 1, 3)
         goal_kp_pos_repeat = self.goal_pos.unsqueeze(1).repeat(1, self.num_arms, 1, 1).view(self.num_envs, self.num_arms, 1, 3)
-        print(self.object_pos.shape, obj_kp_pos_repeat.shape, palm_center_repeat.shape)
         self.keypoints_rel_palm = obj_kp_pos_repeat - palm_center_repeat
         self.keypoints_rel_palm = self.keypoints_rel_palm.view(self.num_envs, self.num_arms, 3)
         self.goal_kp_rel_palm = goal_kp_pos_repeat - palm_center_repeat

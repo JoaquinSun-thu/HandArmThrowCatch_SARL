@@ -397,12 +397,24 @@ class PPO:
         ep_string = f''
         if locs['ep_infos']:
             for key in locs['ep_infos'][0]:
-                infotensor = torch.tensor([], device=self.device)
-                for ep_info in locs['ep_infos']:
-                    infotensor = torch.cat((infotensor, ep_info[key].to(self.device)))
-                value = torch.mean(infotensor)
-                self.writer.add_scalar('Episode/' + key, value, locs['it'])
-                ep_string += f"""{f'Mean episode {key}:':>{pad}} {value:.4f}\n"""
+                if key == 'rewards_episode':
+                    # 处理rewards_episode字典
+                    rewards_dict = locs['ep_infos'][0][key]
+                    for reward_name, reward_tensor in rewards_dict.items():
+                        # 对每个奖励项计算平均值
+                        value = torch.mean(reward_tensor)
+                        # 添加到tensorboard
+                        self.writer.add_scalar(f'Episode/Rewards/{reward_name}', value, locs['it'])
+                        # 添加到打印信息
+                        ep_string += f"""{f'Mean episode {reward_name}:':>{pad}} {value:.4f}\n"""
+                else:
+                    # 处理其他非字典类型的extras信息
+                    infotensor = torch.tensor([], device=self.device)
+                    for ep_info in locs['ep_infos']:
+                        infotensor = torch.cat((infotensor, ep_info[key].to(self.device)))
+                    value = torch.mean(infotensor)
+                    self.writer.add_scalar('Episode/' + key, value, locs['it'])
+                    ep_string += f"""{f'Mean episode {key}:':>{pad}} {value:.4f}\n"""
         mean_std = self.actor_critic.log_std.exp().mean()
 
         fps = int(self.num_transitions_per_env * self.vec_env.num_envs / (locs['collection_time'] + locs['learn_time']))
