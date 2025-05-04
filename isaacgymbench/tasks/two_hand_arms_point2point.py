@@ -227,9 +227,9 @@ class TwoHandArmsPoint2Point(BaseTask):
         self.throw_arm = torch.ones(self.num_envs, dtype=torch.long, device=self.device)
         self.catch_arm = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
         reward_keys = [
-            "raw_fingertip_delta_rew",
-            "raw_lifting_rew",
-            "raw_keypoint_rew",
+            # "raw_fingertip_delta_rew",
+            # "raw_lifting_rew",
+            # "raw_keypoint_rew",
             "fingertip_delta_rew",
             "lifting_rew",
             "lift_bonus_rew",
@@ -515,9 +515,9 @@ class TwoHandArmsPoint2Point(BaseTask):
 
         self.reset_goal_buf[:] = goal_resets
 
-        self.rewards_episode["raw_fingertip_delta_rew"] += fingertip_delta_rew
-        self.rewards_episode["raw_lifting_rew"] += lifting_rew
-        self.rewards_episode["raw_keypoint_rew"] += keypoint_rew
+        # self.rewards_episode["raw_fingertip_delta_rew"] += fingertip_delta_rew
+        # self.rewards_episode["raw_lifting_rew"] += lifting_rew
+        # self.rewards_episode["raw_keypoint_rew"] += keypoint_rew
 
         fingertip_delta_rew *= self.distance_delta_rew_scale
         lifting_rew *= self.lifting_rew_scale
