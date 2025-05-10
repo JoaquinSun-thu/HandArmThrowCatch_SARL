@@ -193,7 +193,7 @@ class PPO:
             test_iterm = 0
             accum_rew_list = []
             current_accum_rew = 0
-            plt.ion()
+            # plt.ion()
             while True:  
                 with torch.no_grad():
                     if self.apply_reset:
@@ -219,16 +219,16 @@ class PPO:
                     # plot
                     current_accum_rew += rews[0].item()
                     accum_rew_list.append(current_accum_rew)
-                    plt.clf()
-                    plt.plot(accum_rew_list)
-                    plt.xlim(0, 100)
-                    plt.xlabel('step')
-                    plt.ylim(0,50)
-                    plt.ylabel('accumulated reward')
-                    plt.axhline(y=current_accum_rew, color='c', linestyle='-')
+                    # plt.clf()
+                    # plt.plot(accum_rew_list)
+                    # plt.xlim(0, 100)
+                    # plt.xlabel('step')
+                    # plt.ylim(0,50)
+                    # plt.ylabel('accumulated reward')
+                    # plt.axhline(y=current_accum_rew, color='c', linestyle='-')
                     if len(accum_rew_list) == 1:
                         pass
-                    plt.pause(0.001)
+                    # plt.pause(0.001)
                     if dones[0]:
                         current_accum_rew = 0
                         accum_rew_list = []
@@ -286,23 +286,23 @@ class PPO:
                     # self.writer.add_scalar('Power/action_resultant_torque', )
                     test_iterm += 1
                     
-                    if len(rewbuffer) > 0:
-                        print("############################################")
-                        print(f"test_mean_reward: {test_rewards_mean:.2f}")
-                        print(f"test_success_rate(reward_15): {success_num_15/100.:.2f} %" )
-                        print(f"test_success_rate(reward_20): {success_num_20/100.:.2f} %" )
-                        print(f"test_success_rate(reward_25): {success_num_25/100.:.2f} %" )
-                        # print(f"test_action_sum_num: {len(action_sum_list)}")
-                        print(f"current_buffer_size(reward): {len(rewbuffer)}")
+                    # if len(rewbuffer) > 0:
+                    #     print("############################################")
+                    #     print(f"test_mean_reward: {test_rewards_mean:.2f}")
+                    #     print(f"test_success_rate(reward_15): {success_num_15/100.:.2f} %" )
+                    #     print(f"test_success_rate(reward_20): {success_num_20/100.:.2f} %" )
+                    #     print(f"test_success_rate(reward_25): {success_num_25/100.:.2f} %" )
+                    #     # print(f"test_action_sum_num: {len(action_sum_list)}")
+                    #     print(f"current_buffer_size(reward): {len(rewbuffer)}")
 
-                        print(torch.max(test_distances))
-                        print(torch.min(test_distances))
-                        print(f"test_success_rate(distance_005): {dist_succsess_num_005/100.:.2f} %" )
-                        print(f"test_success_rate(distance_010): {dist_succsess_num_010/100.:.2f} %" )
-                        print(f"test_success_rate(distance_015): {dist_succsess_num_015/100.:.2f} %" )
+                    #     print(torch.max(test_distances))
+                    #     print(torch.min(test_distances))
+                    #     print(f"test_success_rate(distance_005): {dist_succsess_num_005/100.:.2f} %" )
+                    #     print(f"test_success_rate(distance_010): {dist_succsess_num_010/100.:.2f} %" )
+                    #     print(f"test_success_rate(distance_015): {dist_succsess_num_015/100.:.2f} %" )
 
-                        print(f"current_buffer_size(distance): {len(distbuffer)}")
-                        print(f"current_buffer_size: {len(rewbuffer)}")
+                    #     print(f"current_buffer_size(distance): {len(distbuffer)}")
+                    #     print(f"current_buffer_size: {len(rewbuffer)}")
             plt.ioff()   
         else:
             rewbuffer = deque(maxlen=100)
@@ -401,12 +401,14 @@ class PPO:
                     # 处理rewards_episode字典
                     rewards_dict = locs['ep_infos'][0][key]
                     for reward_name, reward_tensor in rewards_dict.items():
-                        # 对每个奖励项计算平均值
-                        value = torch.mean(reward_tensor)
-                        # 添加到tensorboard
-                        self.writer.add_scalar(f'Episode/Rewards/{reward_name}', value, locs['it'])
-                        # 添加到打印信息
-                        ep_string += f"""{f'Mean episode {reward_name}:':>{pad}} {value:.4f}\n"""
+                        # 只计算dones为1的环境的奖励
+                        done_mask = locs['dones'] > 0
+                        if done_mask.any():
+                            value = torch.mean(reward_tensor[done_mask])
+                            # 添加到tensorboard
+                            self.writer.add_scalar(f'Episode/Rewards/{reward_name}', value, locs['it'])
+                            # 添加到打印信息
+                            ep_string += f"""{f'Mean episode reward {reward_name}:':>{pad}} {value:.4f}\n"""
                 else:
                     # 处理其他非字典类型的extras信息
                     infotensor = torch.tensor([], device=self.device)

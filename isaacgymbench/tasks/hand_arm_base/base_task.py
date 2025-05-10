@@ -10,6 +10,7 @@ import os
 import operator
 from copy import deepcopy
 import random
+from typing import Dict, Any, Tuple, List, Set
 
 from isaacgym import gymapi
 from isaacgym.gymutil import get_property_setter_map, get_property_getter_map, get_default_setter_args, apply_random_samples, check_buckets, generate_random_samples
@@ -34,9 +35,9 @@ class BaseTask():
         self.headless = cfg["headless"]
 
         # double check!
-        self.graphics_device_id = self.device_id
+        self.graphics_device_id = 0
         if enable_camera_sensors == False and self.headless == True:
-            self.graphics_device_id = -1
+            self.graphics_device_id = 0
 
         self.num_envs = cfg["env"]["numEnvs"]
         if is_meta:
@@ -117,8 +118,39 @@ class BaseTask():
             sim_params.gravity.z = -9.81
             return 2
         return 1
+    
+    def parse_sim_params(self, sim_params, config_sim: Dict[str, Any]) -> gymapi.SimParams:
+        """Parse the config dictionary for physics stepping settings.
+
+        Args:
+            physics_engine: which physics engine to use. "physx" or "flex"
+            config_sim: dict of sim configuration parameters
+        Returns
+            IsaacGym SimParams object with updated settings.
+        """
+        # assign general sim parameters
+        sim_params.dt = config_sim["dt"]
+        sim_params.num_client_threads = config_sim.get("num_client_threads", 0)
+        sim_params.use_gpu_pipeline = config_sim["use_gpu_pipeline"]
+        sim_params.substeps = config_sim.get("substeps", 2)
+
+        # set the parameters
+        if "physx" in config_sim:
+            for opt in config_sim["physx"].keys():
+                if opt == "contact_collection":
+                    setattr(sim_params.physx, opt, gymapi.ContactCollection(config_sim["physx"][opt]))
+                else:
+                    setattr(sim_params.physx, opt, config_sim["physx"][opt])
+
+        return sim_params
 
     def create_sim(self, compute_device, graphics_device, physics_engine, sim_params):
+        for attr in dir(sim_params):
+            if not attr.startswith("_"):
+                print(f"{attr}: {getattr(sim_params, attr)}")
+        for attr in dir(sim_params.physx):
+            if not attr.startswith("_"):
+                print(f"physx.{attr}: {getattr(sim_params.physx, attr)}")
         sim = self.gym.create_sim(compute_device, graphics_device, physics_engine, sim_params)
         self.gym.set_light_parameters(sim, 0, gymapi.Vec3(0.8, 0.8, 0.8), gymapi.Vec3(0.8, 0.8, 0.8), gymapi.Vec3(0.0, 0.0, 1))
         if sim is None:

@@ -61,7 +61,7 @@ def parse_task(args, cfg, cfg_train, sim_params):
                 task.init(device_id, -1, args.physics_engine, sim_params)
             else:
                 task.init(device_id, device_id, args.physics_engine, sim_params)
-            env = VecTaskCPU(task, rl_device, False, cfg_train.get("clip_observations", 5.0), cfg_train.get("clip_actions", 1.0))
+            env = VecTaskCPU(task, rl_device, False, cfg_train.get("clip_observations", 10.0), cfg_train.get("clip_actions", 10.0))
         else:
             print("C++ GPU")
 
@@ -72,7 +72,7 @@ def parse_task(args, cfg, cfg_train, sim_params):
                 task.init(device_id, -1, args.physics_engine, sim_params)
             else:
                 task.init(device_id, device_id, args.physics_engine, sim_params)
-            env = VecTaskGPU(task, rl_device, cfg_train.get("clip_observations", 5.0), cfg_train.get("clip_actions", 1.0))
+            env = VecTaskGPU(task, rl_device, cfg_train.get("clip_observations", 10.0), cfg_train.get("clip_actions", 10.0))
 
     elif args.task_type == "Python":
         print("Python")

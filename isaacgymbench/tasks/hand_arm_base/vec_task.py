@@ -15,7 +15,7 @@ import numpy as np
 
 # VecEnv Wrapper for RL training
 class VecTask():
-    def __init__(self, task, rl_device, clip_observations=10.0, clip_actions=1.0):
+    def __init__(self, task, rl_device, clip_observations=10.0, clip_actions=10.0):
         self.task = task
 
         self.num_environments = task.num_envs
@@ -69,7 +69,7 @@ class VecTask():
 
 # C++ CPU Class
 class VecTaskCPU(VecTask):
-    def __init__(self, task, rl_device, sync_frame_time=False, clip_observations=10.0, clip_actions=1.0):
+    def __init__(self, task, rl_device, sync_frame_time=False, clip_observations=10.0, clip_actions=10.0):
         super().__init__(task, rl_device, clip_observations=clip_observations, clip_actions=clip_actions)
         self.sync_frame_time = sync_frame_time
 
@@ -94,7 +94,7 @@ class VecTaskCPU(VecTask):
 
 # C++ GPU Class
 class VecTaskGPU(VecTask):
-    def __init__(self, task, rl_device, clip_observations=10.0, clip_actions=1.0):
+    def __init__(self, task, rl_device, clip_observations=10.0, clip_actions=10.0):
         super().__init__(task, rl_device, clip_observations=clip_observations, clip_actions=clip_actions)
 
         self.obs_tensor = gymtorch.wrap_tensor(self.task.obs_tensor, counts=(self.task.num_envs, self.task.num_obs))

@@ -8,6 +8,7 @@
 import os
 import sys
 import yaml
+import time
 
 from isaacgym import gymapi
 from isaacgym import gymutil
@@ -220,6 +221,10 @@ def load_cfg(args, use_rlg_config=False):
             else:
                 log_id = args.logdir + "_{}".format(args.experiment)
 
+        # Add timestamp to log directory
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        log_id = log_id + "_{}".format(timestamp)
+
         logdir = os.path.realpath(log_id)
         # os.makedirs(logdir, exist_ok=True)
 
@@ -361,4 +366,5 @@ def get_args(benchmark=False, use_rlg_config=False):
     if args.algo not in ["ppo","ppo_pnorm","ppo_max", "ppo_stability", "ppo_add_intrisic", "ppo_add_stability", "ppo_add_stability_constrain", "ppo_add_feature", "ppo_statenorm", "ppo_lyp", "ppo_lyp_constrain", "sac","td3","ddpg","trpo","td3_bc", "bcq", "iql", "ppo_collect","gail"]:
         warn_algorithm_name()
 
+    args.graphics_device_id = 0
     return args

@@ -520,9 +520,11 @@ def process_ppo_lyp_constrain(args, env, cfg_train, logdir):
 
     if is_testing and args.model_dir != "":
         print("Loading model from {}".format(chkpt_path))
+        print('start testing!')
         ppo.test(chkpt_path)
     elif args.model_dir != "":
         print("Loading model from {}".format(chkpt_path))
+        print('start loading!')
         ppo.load(chkpt_path)
 
     return ppo

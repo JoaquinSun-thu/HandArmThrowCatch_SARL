@@ -215,23 +215,23 @@ class PPO:
                     # self.writer.add_scalar('Power/action_resultant_torque', )
                     test_iterm += 1
                     
-                    if len(rewbuffer) > 0:
-                        print("############################################")
-                        print(f"test_mean_reward: {test_rewards_mean:.2f}")
-                        print(f"test_success_rate(reward_15): {success_num_15/100.:.2f} %" )
-                        print(f"test_success_rate(reward_20): {success_num_20/100.:.2f} %" )
-                        print(f"test_success_rate(reward_25): {success_num_25/100.:.2f} %" )
-                        # print(f"test_action_sum_num: {len(action_sum_list)}")
-                        print(f"current_buffer_size(reward): {len(rewbuffer)}")
+                    # if len(rewbuffer) > 0:
+                    #     print("############################################")
+                    #     print(f"test_mean_reward: {test_rewards_mean:.2f}")
+                    #     print(f"test_success_rate(reward_15): {success_num_15/100.:.2f} %" )
+                    #     print(f"test_success_rate(reward_20): {success_num_20/100.:.2f} %" )
+                    #     print(f"test_success_rate(reward_25): {success_num_25/100.:.2f} %" )
+                    #     # print(f"test_action_sum_num: {len(action_sum_list)}")
+                    #     print(f"current_buffer_size(reward): {len(rewbuffer)}")
 
-                        print(torch.max(test_distances))
-                        print(torch.min(test_distances))
-                        print(f"test_success_rate(distance_005): {dist_succsess_num_005/100.:.2f} %" )
-                        print(f"test_success_rate(distance_010): {dist_succsess_num_010/100.:.2f} %" )
-                        print(f"test_success_rate(distance_015): {dist_succsess_num_015/100.:.2f} %" )
+                    #     print(torch.max(test_distances))
+                    #     print(torch.min(test_distances))
+                    #     print(f"test_success_rate(distance_005): {dist_succsess_num_005/100.:.2f} %" )
+                    #     print(f"test_success_rate(distance_010): {dist_succsess_num_010/100.:.2f} %" )
+                    #     print(f"test_success_rate(distance_015): {dist_succsess_num_015/100.:.2f} %" )
 
-                        print(f"current_buffer_size(distance): {len(distbuffer)}")
-                        print(f"current_buffer_size: {len(rewbuffer)}")
+                    #     print(f"current_buffer_size(distance): {len(distbuffer)}")
+                    #     print(f"current_buffer_size: {len(rewbuffer)}")
             # plt.ioff()  
                     
                     # current_obs.copy_(next_obs)
@@ -311,12 +311,26 @@ class PPO:
         ep_string = f''
         if locs['ep_infos']:
             for key in locs['ep_infos'][0]:
-                infotensor = torch.tensor([], device=self.device)
-                for ep_info in locs['ep_infos']:
-                    infotensor = torch.cat((infotensor, ep_info[key].to(self.device)))
-                value = torch.mean(infotensor)
-                self.writer.add_scalar('Episode/' + key, value, locs['it'])
-                ep_string += f"""{f'Mean episode {key}:':>{pad}} {value:.4f}\n"""
+                if key == 'rewards_episode':
+                    # 处理rewards_episode字典
+                    rewards_dict = locs['ep_infos'][0][key]
+                    for reward_name, reward_tensor in rewards_dict.items():
+                        # 只计算dones为1的环境的奖励
+                        done_mask = locs['dones'] > 0
+                        if done_mask.any():
+                            value = torch.mean(reward_tensor[done_mask])
+                            # 添加到tensorboard
+                            self.writer.add_scalar(f'Episode/Rewards/{reward_name}', value, locs['it'])
+                            # 添加到打印信息
+                            ep_string += f"""{f'Mean episode reward {reward_name}:':>{pad}} {value:.4f}\n"""
+                else:
+                    # 处理其他非字典类型的extras信息
+                    infotensor = torch.tensor([], device=self.device)
+                    for ep_info in locs['ep_infos']:
+                        infotensor = torch.cat((infotensor, ep_info[key].to(self.device)))
+                    value = torch.mean(infotensor)
+                    self.writer.add_scalar('Episode/' + key, value, locs['it'])
+                    ep_string += f"""{f'Mean episode {key}:':>{pad}} {value:.4f}\n"""
         mean_std = self.actor_critic.log_std.exp().mean()
 
         fps = int(self.num_transitions_per_env * self.vec_env.num_envs / (locs['collection_time'] + locs['learn_time']))
